@@ -19,8 +19,8 @@ public:
     bool contains(Card card);
     bool contains(QString id);
     int size();
-    std::vector<Card> filter(Suit suit);
-    std::vector<Card> filter(int rank);
+    Deck filter(Suit suit) const;
+    Deck filter(int rank) const;
     Card topCard() const;
 
     void fill();

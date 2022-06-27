@@ -36,21 +36,23 @@ int Deck::size() {
     return this->cards.size();
 }
 
-std::vector<Card> Deck::filter(Suit suit) {
-    std::vector<Card> filtrate;
+Deck Deck::filter(Suit suit) const {
+    Deck hand_copy = Deck(*this);
+    Deck filtrate;
     for (Card card : this->cards) {
         if (card.getSuit() == suit) {
-            filtrate.push_back(card);
+            hand_copy.put(card, filtrate);
         }
     }
     return filtrate;
 }
 
-std::vector<Card> Deck::filter(int rank) {
-    std::vector<Card> filtrate;
+Deck Deck::filter(int rank) const {
+    Deck hand_copy = Deck(*this);
+    Deck filtrate;
     for (Card card : this->cards) {
         if (card.getRank() == rank) {
-            filtrate.push_back(card);
+            hand_copy.put(card, filtrate);
         }
     }
     return filtrate;

@@ -4,10 +4,11 @@
 #include "deck.h"
 #include "dealer.h"
 #include "player.h"
+#include "game.h"
 #include "humanplayer.h"
 #include <iostream>
 
-int HUMAN_PLAYERS = 3;
+int HUMAN_PLAYERS = 1;
 int MACHINE_PLAYERS = 0;
 
 int main(int argc, char *argv[])
