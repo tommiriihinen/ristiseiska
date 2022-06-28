@@ -2,7 +2,6 @@
 #define HUMANPLAYER_H
 
 #include "player.h"
-#include "game.h"
 #include "board.h"
 
 class HumanPlayer: public Player
@@ -10,8 +9,8 @@ class HumanPlayer: public Player
 public:
     HumanPlayer();
 
-    Card_event play_card(Board* board);
-    void give_card(Player* player);
+    Card_event play_card(Board &board);
+    void give_card(Player &player);
     bool will_continue();
 
 };

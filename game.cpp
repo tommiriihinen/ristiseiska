@@ -19,23 +19,30 @@ void Game::start() {
     bool game_is_on = true;
     while(game_is_on) {
         this->turn++;
-        std::cout << "\nTurn: " << turn << " ";
+        std::cout << "\nTurn: " << turn << "\n";
+        this->board.print();
         Player* current_player = players[(turn-1) % n];
         end_card_replay:
-        Card_event event = current_player->play_card(&this->board);
+        Card_event event = current_player->play_card(this->board);
 
         switch (event) {
         case ordinary_card:
             break;
 
         case end_card:
+            if (current_player->will_continue()) {
+            std::cout << current_player->getName().toStdString() << " continues.\n";
             goto end_card_replay;
+            }
+            std::cout << current_player->getName().toStdString() << " doesn't continue.\n";
             break;
 
         case no_card:
             if (this->board.isEmpty()) break;
             Player* last_player = players[(turn-2) % n];
-            last_player->give_card(current_player);
+            std::cout << current_player->getName().toStdString() << " passes.\n";
+            last_player->give_card(*current_player);
+            std::cout << last_player->getName().toStdString() << " gave " << current_player->getName().toStdString() << " a card.\n";
             current_player->getDeck()->suitSort();
             break;
 

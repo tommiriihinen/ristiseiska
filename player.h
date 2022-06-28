@@ -14,13 +14,13 @@ public:
     Player();
 
     // plays the card on board if possible. Returns true if a card was played and false otherwise
-    virtual Card_event play_card(Board* board) = 0;
-    virtual void give_card(Player* player) = 0;
+    virtual Card_event play_card(Board &board) = 0;
+    virtual void give_card(Player &player) = 0;
     virtual bool will_continue() = 0;
 
     Deck* getDeck() {return &this->hand;}
     void setName(QString name) {this->name = name;}
-    QString getName() {return this->name;}
+    QString getName() const {return this->name;}
 
 protected:
     Deck hand;

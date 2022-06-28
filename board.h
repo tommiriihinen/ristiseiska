@@ -13,9 +13,10 @@ class Board
 public:
     Board();
 
-    void print();
+    void print() const;
     bool canPlay(const Card &card);
     bool isEmpty() const;
+    // Finds the decks in which the player is allowed to place a specific card
     std::vector<Deck*> getOptions(const Card &card);
 
 private:

@@ -39,7 +39,7 @@ bool Board::isEmpty() const {
     return b;
 }
 
-void Board::print() {
+void Board::print() const {
 
     std::string top_row, mid_row, bot_row;
     for (SuitComponent* sc : this->suitComponents) {

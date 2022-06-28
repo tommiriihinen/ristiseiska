@@ -3,12 +3,14 @@
 #include "card.h"
 #include "deck.h"
 #include "dealer.h"
+#include "game.h"
 #include "player.h"
 #include "humanplayer.h"
+#include "machineplayer.h"
 #include <iostream>
 
-int HUMAN_PLAYERS = 3;
-int MACHINE_PLAYERS = 0;
+int HUMAN_PLAYERS = 1;
+int MACHINE_PLAYERS = 2;
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +28,15 @@ int main(int argc, char *argv[])
     std::vector<Player*> players;
     for (int playerN = 1; playerN <= HUMAN_PLAYERS; playerN++) {
         HumanPlayer* player = new HumanPlayer();
-        player->setName(QString::fromStdString(std::to_string(playerN)));
+        std::string prefix = "human-";
+        player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
+        game->addPlayer(player);
+        players.push_back(player);
+    }
+    for (int playerN = 1; playerN <= MACHINE_PLAYERS; playerN++) {
+        MachinePlayer* player = new MachinePlayer();
+        std::string prefix = "robo-";
+        player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
         game->addPlayer(player);
         players.push_back(player);
     }
@@ -44,6 +54,5 @@ int main(int argc, char *argv[])
     std::cout << "The Seven of Clubs\n";
     game->start();
 
-    qDebug("end");
     return a.exec();
 }

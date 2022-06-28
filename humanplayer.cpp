@@ -5,21 +5,30 @@ HumanPlayer::HumanPlayer()
 
 }
 
-Card_event HumanPlayer::play_card(Board* board) {
+Card_event HumanPlayer::play_card(Board &board) {
     std::cout << "Player: "<< this->name.toStdString() << "\n";
-    board->print();
     std::cout << "\nYour hand is: ";
     hand.print();
 
     std::string input;
     bool reading_input = true;
     while (reading_input) {
-        std::cout << "Play card or (P)ass: ";
+        std::cout << "Play card or [P]ass: ";
         std::cin >> input;
 
         if (input == "P") {
-            std::cout << this->name.toStdString() << " passed.\n";
-            return no_card;
+            std::vector<Card> options;
+            for (Card card : this->hand.toVector()) {
+                if (board.canPlay(card)) {
+                    options.push_back(card);
+                }
+            }
+            if (options.empty()) {
+                std::cout << this->name.toStdString() << " passed.\n";
+                return no_card;
+            } else {
+                std::cout << "You shall not pass!\n";
+            }
         }
 
         Card card = QString::fromStdString(input);
@@ -28,12 +37,12 @@ Card_event HumanPlayer::play_card(Board* board) {
             continue;
         }
 
-        if (!board->canPlay(card)) {
+        if (!board.canPlay(card)) {
             std::cout << input << " doesn't fit on the board ";
             continue;
         }
 
-        Deck* target = board->getOptions(card)[0];
+        Deck* target = board.getOptions(card)[0];
         hand.put(card, *target);
         if (card.getRank() == 1 || card.getRank() == 13) {
             return end_card;
@@ -42,10 +51,10 @@ Card_event HumanPlayer::play_card(Board* board) {
     }
 }
 
-void HumanPlayer::give_card(Player* other_player) {
+void HumanPlayer::give_card(Player &other_player) {
     std::cout << "\nYour hand is: ";
     hand.print();
-    std::cout << this->name.toStdString() << " which card to give to " << other_player->getName().toStdString() << "?: ";
+    std::cout << this->name.toStdString() << " which card to give to " << other_player.getName().toStdString() << "?: ";
     std::string input;
     bool reading_input = true;
     while (reading_input) {
@@ -56,7 +65,7 @@ void HumanPlayer::give_card(Player* other_player) {
             std::cout << input << " is not a card in your hand! \n";
             continue;
         }
-        this->hand.put(card, *other_player->getDeck());
+        this->hand.put(card, *other_player.getDeck());
         reading_input = false;
     }
 }
