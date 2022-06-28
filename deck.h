@@ -14,13 +14,15 @@ class Deck
 {
 public:
     Deck() {}
+    Deck(std::vector<Card> cards) {for (Card card : cards) this->cards.push_back(card);}
 
     bool isEmpty();
-    bool contains(Card card);
-    bool contains(QString id);
+    bool contains(Card card) const;
+    bool contains(QString id) const;
     int size();
-    std::vector<Card> filter(Suit suit);
-    std::vector<Card> filter(int rank);
+    std::vector<Card> filter(Suit suit) const;
+    std::vector<Card> filter(int rank) const;
+    std::vector<Card> toVector() const;
     Card topCard() const;
 
     void fill();

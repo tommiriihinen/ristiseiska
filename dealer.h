@@ -2,6 +2,9 @@
 #define DEALER_H
 
 #include <vector>
+#include <algorithm>
+#include <ctime>
+#include <cstdlib>
 #include "deck.h"
 
 
@@ -18,6 +21,7 @@ public:
 private:
     std::vector<Deck*> target_decks;
     Deck dealers_deck;
+    int source(int i) { return std::rand()%i;}
 };
 
 

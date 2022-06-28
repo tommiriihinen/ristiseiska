@@ -16,14 +16,14 @@ bool Deck::isEmpty() {
     return this->cards.empty();
 }
 
-bool Deck::contains(Card card) {
+bool Deck::contains(Card card) const {
     for (Card deck_card : this->cards) {
         if (deck_card == card) return true;
     }
     return false;
 }
 
-bool Deck::contains(QString id) {
+bool Deck::contains(QString id) const {
     for (Card deck_card : this->cards) {
         if (deck_card.id() == id) {
             return true;
@@ -36,7 +36,7 @@ int Deck::size() {
     return this->cards.size();
 }
 
-std::vector<Card> Deck::filter(Suit suit) {
+std::vector<Card> Deck::filter(Suit suit) const {
     std::vector<Card> filtrate;
     for (Card card : this->cards) {
         if (card.getSuit() == suit) {
@@ -46,7 +46,7 @@ std::vector<Card> Deck::filter(Suit suit) {
     return filtrate;
 }
 
-std::vector<Card> Deck::filter(int rank) {
+std::vector<Card> Deck::filter(int rank) const {
     std::vector<Card> filtrate;
     for (Card card : this->cards) {
         if (card.getRank() == rank) {
@@ -54,6 +54,10 @@ std::vector<Card> Deck::filter(int rank) {
         }
     }
     return filtrate;
+}
+
+std::vector<Card> Deck::toVector() const {
+    return this->cards;
 }
 
 Card Deck::topCard() const {
@@ -92,8 +96,8 @@ void Deck::swap(Deck &target_dec) {
 }
 
 void Deck::shuffle() {
-    auto rng = std::default_random_engine {};
-    std::shuffle(std::begin(this->cards), std::end(this->cards), rng);
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::shuffle(std::begin(this->cards), std::end(this->cards), std::default_random_engine(seed));
 }
 
 void Deck::suitSort() {
