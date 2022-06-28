@@ -17,18 +17,8 @@ Card_event HumanPlayer::play_card(Board &board) {
         std::cin >> input;
 
         if (input == "P") {
-            std::vector<Card> options;
-            for (Card card : this->hand.toVector()) {
-                if (board.canPlay(card)) {
-                    options.push_back(card);
-                }
-            }
-            if (options.empty()) {
-                std::cout << this->name.toStdString() << " passed.\n";
-                return no_card;
-            } else {
-                std::cout << "You shall not pass!\n";
-            }
+            std::cout << this->name.toStdString() << " passed.\n";
+            return no_card;
         }
 
         Card card = QString::fromStdString(input);
