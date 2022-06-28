@@ -13,6 +13,23 @@ Board* Game::getBoard() {
     return &this->board;
 }
 
+void Game::setup() {
+    // CREATE CARDS
+    Deck* main_deck = new Deck();
+    main_deck->fill();
+    main_deck->print();
+
+    // DEAL CARDS
+    qDebug() << "Players hands: ";
+    Dealer dealer;
+    dealer.addCards(*main_deck);
+    for (auto player : players) {
+        player->getDeck()->print();
+        dealer.addDeck(player->getDeck());
+    }
+    dealer.deal();
+}
+
 void Game::start() {
     this->turn = 0;
     int n = players.size();

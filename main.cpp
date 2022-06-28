@@ -19,11 +19,6 @@ int main(int argc, char *argv[])
     // CREATE GAME
     Game* game = new Game();
 
-    // CREATE CARDS
-    Deck* main_deck = new Deck();
-    main_deck->fill();
-    main_deck->print();
-
     // CREATE PLAYERS
     std::vector<Player*> players;
     for (int playerN = 1; playerN <= HUMAN_PLAYERS; playerN++) {
@@ -41,16 +36,7 @@ int main(int argc, char *argv[])
         players.push_back(player);
     }
 
-    // DEAL CARDS
-    qDebug() << "Players hands: ";
-    Dealer dealer;
-    dealer.addCards(*main_deck);
-    for (auto player : players) {
-        player->getDeck()->print();
-        dealer.addDeck(player->getDeck());
-    }
-    dealer.deal();
-
+    game->setup();
     std::cout << "The Seven of Clubs\n";
     game->start();
 
