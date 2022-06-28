@@ -69,7 +69,7 @@ bool HumanPlayer::will_continue() {
     std::string input;
     bool invalid_input = true;
     while(invalid_input) {
-        std::cout << "Will you continue? (y/n)";
+        std::cout << "Will you continue? (y/n): ";
         std::cin >> input;
         if (input == "y") return true;
         if (input == "n") return false;
