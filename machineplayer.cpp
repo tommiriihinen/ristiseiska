@@ -13,7 +13,10 @@ Card_event MachinePlayer::play_card(Board &board) {
         if (this->hand.contains(club7)) {
             Deck* target = board.getOptions(club7)[0];
             hand.put(club7, *target);
-            std::cout << this->name.toStdString() << " plays " << club7.id().toStdString() << ".";
+            std::cout << this->name.toStdString() << " plays "
+                      << club7.id().toStdString() << ". Cards left: "
+                      << this->hand.size() << "\n";
+            return ordinary_card;
         } else {
             return no_card;
         }
@@ -36,13 +39,15 @@ Card_event MachinePlayer::play_card(Board &board) {
     });
 
     for (Card card : options) {
-        qDebug() << "Machine wants to play " << card.id() << " with score " << card_scores[card];
+        //qDebug() << "Machine wants to play " << card.id() << " with score " << card_scores[card];
     }
 
-    Card card = options[0];
+    Card card = options.front();
     Deck* target = board.getOptions(card)[0];
     hand.put(card, *target);
-    std::cout << this->name.toStdString() << " plays " << card.id().toStdString() << ".\n";
+    std::cout << this->name.toStdString() << " plays "
+              << card.id().toStdString() << ". Cards left: "
+              << this->hand.size() << "\n";
 
     if (card.getRank() == 1 || card.getRank() == 13) {
         return end_card;
@@ -52,7 +57,13 @@ Card_event MachinePlayer::play_card(Board &board) {
 }
 
 void MachinePlayer::give_card(Player &player) {
-    Card card = this->hand.topCard();
+    std::vector<Card> cards = this->hand.toVector();
+    this->update_score_map();
+    sort(cards.begin(), cards.end(), [ this] ( const Card& lhs, const Card& rhs )
+    {
+       return this->card_scores[lhs] < this->card_scores[rhs];
+    });
+    Card card = cards.back();
     this->hand.put(card, *player.getDeck());
 }
 
@@ -68,14 +79,13 @@ bool MachinePlayer::will_continue() {
  * 1.1. everything else is kept closed.
  * 1.2. the more cards it can keep closed with a single card, the better.
  *
- * DRAWING:
- * 2. never want's to draw
- * 2.1 compromises on 1. if it gets closer to drawing
+ * GIVING CARDS: Done
+ * 2. gives the cards it most needs to be played.
  *
  * CONTINUING: Done
  * 3. never
  *
- * AWARENESS OF OTHER PLAYERS: Done
+ * AWARENESS OF OTHER PLAYERS:
  * -none
  *
  */
@@ -117,7 +127,7 @@ void MachinePlayer::update_score_map() {
                 score += rank - 1;
             }
 
-            qDebug() << "Scored: " << card.id() << ": " << score;
+            //qDebug() << "Scored: " << card.id() << ": " << score;
             new_card_scores[card] = score;
         }
     }
