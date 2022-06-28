@@ -77,16 +77,16 @@ QString Card::id() const {
 
     switch (this->suit) {
     case clubs:
-        id.append("C");
+        id.append("♣"); // ♣ ♧
         break;
     case diamonds:
-        id.append("D");
+        id.append("♦"); // ♦ ♢
         break;
     case hearts:
-        id.append("H");
+        id.append("♥"); // ♥ ♡
         break;
     case spades:
-        id.append("S");
+        id.append("♠"); // ♠ ♤
         break;
     }
 
