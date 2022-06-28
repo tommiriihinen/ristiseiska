@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <random>
 #include <vector>
-#include "card.h"
 #include "QDebug"
+#include "headers/logic_base/card.h"
 
 
 class Deck

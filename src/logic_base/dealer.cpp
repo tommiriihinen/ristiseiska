@@ -1,4 +1,4 @@
-#include "dealer.h"
+#include "headers/logic_base/dealer.h"
 
 Dealer::Dealer()
 {

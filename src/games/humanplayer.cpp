@@ -1,4 +1,5 @@
-#include "humanplayer.h"
+
+#include "headers/games/humanplayer.h"
 
 HumanPlayer::HumanPlayer()
 {

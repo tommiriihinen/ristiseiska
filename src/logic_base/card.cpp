@@ -1,4 +1,4 @@
-#include "card.h"
+#include "headers/logic_base/card.h"
 
 
 Card::Card(QString id) {

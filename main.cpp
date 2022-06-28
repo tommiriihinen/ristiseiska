@@ -1,13 +1,10 @@
 #include <QCoreApplication>
-
-#include "card.h"
-#include "deck.h"
-#include "dealer.h"
-#include "game.h"
-#include "player.h"
-#include "humanplayer.h"
-#include "machineplayer.h"
 #include <iostream>
+
+#include "headers/games/game.h"
+#include "headers/games/humanplayer.h"
+#include "headers/games/machineplayer.h"
+
 
 int HUMAN_PLAYERS = 1;
 int MACHINE_PLAYERS = 2;

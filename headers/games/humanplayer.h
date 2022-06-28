@@ -1,10 +1,7 @@
 #ifndef HUMANPLAYER_H
 #define HUMANPLAYER_H
 
-#include "player.h"
-#include "board.h"
-
-
+#include "headers/games/player.h"
 
 class HumanPlayer: public Player
 {

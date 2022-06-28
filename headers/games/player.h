@@ -1,9 +1,9 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "card.h"
-#include "deck.h"
-#include "board.h"
+#include "headers/logic_base/card.h"
+#include "headers/logic_base/deck.h"
+#include "headers/games/board.h"
 #include "qstring.h"
 
 enum Card_event {ordinary_card, no_card, end_card};

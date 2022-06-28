@@ -1,4 +1,4 @@
-#include "board.h"
+#include "headers/games/board.h"
 
 Board::Board()
 {

@@ -1,7 +1,9 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "deck.h"
+#include "headers/logic_base/card.h"
+#include "headers/logic_base/deck.h"
+#include <vector>
 
 
 struct SuitComponent {

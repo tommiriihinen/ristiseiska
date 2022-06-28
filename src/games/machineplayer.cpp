@@ -1,4 +1,4 @@
-#include "machineplayer.h"
+#include "headers/games/machineplayer.h"
 
 MachinePlayer::MachinePlayer()
 {
@@ -13,7 +13,11 @@ Card_event MachinePlayer::play_card(Board &board) {
 
     // Choose the best card out of these
     update_score_map();
-    sort(options.begin(), options.end(), card_score_comparator);
+    sort(options.begin(), options.end(),
+         [this](const Card &a, const Card &b) -> bool
+     {
+         return card_scores[a] > card_scores[b];
+     });
 
     Card card = options.front();
     Deck* target = board.getOptions(card)[0];
@@ -31,7 +35,11 @@ void MachinePlayer::give_card(Player &player) {
     std::vector<Card> cards = hand.toVector();
 
     update_score_map();
-    sort(cards.begin(), cards.end(), card_score_comparator);
+    sort(cards.begin(), cards.end(),
+         [this](const Card &a, const Card &b) -> bool
+     {
+         return card_scores[a] > card_scores[b];
+     });
 
     Card card = cards.back(); // very much WIP
     hand.put(card, *player.getDeck());
@@ -62,7 +70,7 @@ bool MachinePlayer::will_continue() {
 
 void MachinePlayer::update_score_map() {
     // Best card - Highest score -> tries to keep in hand
-    std::map<Card, double> new_card_scores;
+    std::map<Card, int> new_card_scores;
 
     // Suits are scored independently
     for (int s = 0; s < 4; s++) {
@@ -76,7 +84,7 @@ void MachinePlayer::update_score_map() {
 
         for (Card card : suit_cards) {
             int rank = card.getRank();
-            double score = 0.0;
+            int score = 0;
 
             // HOLE SCORING: (More holes before card -> lower score -> quicker play)
             // [A, 2, 3, 4, 5, 8, 6, 7]

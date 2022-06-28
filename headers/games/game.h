@@ -1,9 +1,9 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "board.h"
-#include "dealer.h"
-#include "player.h"
+#include "headers/logic_base/dealer.h"
+#include "headers/games/board.h"
+#include "headers/games/player.h"
 
 class Game
 {
