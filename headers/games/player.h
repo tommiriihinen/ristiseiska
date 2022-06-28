@@ -6,15 +6,13 @@
 #include "headers/games/board.h"
 #include "qstring.h"
 
-enum Card_event {ordinary_card, no_card, end_card};
-
 class Player
 {
 public:
     Player();
 
-    // plays the card on board if possible. Returns true if a card was played and false otherwise
-    virtual Card_event play_card(Board &board) = 0;
+    // plays the card on board if possible. Returns a joker if couldn't play a card
+    virtual Card play_card(Board &board) = 0;
     virtual void give_card(Player &player) = 0;
     virtual bool will_continue() = 0;
 

@@ -32,7 +32,7 @@ bool Deck::contains(QString id) const {
     return false;
 }
 
-int Deck::size() {
+int Deck::size() const {
     return this->cards.size();
 }
 

@@ -5,43 +5,44 @@ MachinePlayer::MachinePlayer()
 
 }
 
-Card_event MachinePlayer::play_card(Board &board) {
+Card MachinePlayer::play_card(Board &board) {
 
     // Figure our what cards can be played
     std::vector<Card> options = findOptions(hand, board);
-    if (options.empty()) return no_card;
+    if (options.empty()) return Card(joker, -1);
 
     // Choose the best card out of these
-    update_score_map();
+    update_playing_scores();
     sort(options.begin(), options.end(),
          [this](const Card &a, const Card &b) -> bool
      {
-         return card_scores[a] > card_scores[b];
+         return playing_scores[a] < playing_scores[b];
      });
 
+    for (Card card : options) {
+        qDebug() << "Robo thinks it could play " << card.id() << " score: " << playing_scores[card];
+    }
+
     Card card = options.front();
+
     Deck* target = board.getOptions(card)[0];
     hand.put(card, *target);
-    std::cout << name.toStdString() << " plays "
-              << card.id().toStdString() << ". Cards left: "
-              << hand.size() << "\n";
 
-    if (card.getRank() == 1 || card.getRank() == 13) return end_card;
-    return ordinary_card;
+    return card;
 
 }
 
 void MachinePlayer::give_card(Player &player) {
     std::vector<Card> cards = hand.toVector();
 
-    update_score_map();
+    update_playing_scores();
     sort(cards.begin(), cards.end(),
          [this](const Card &a, const Card &b) -> bool
      {
-         return card_scores[a] > card_scores[b];
+         return playing_scores[a] < playing_scores[b];
      });
-
     Card card = cards.back(); // very much WIP
+
     hand.put(card, *player.getDeck());
 }
 
@@ -68,49 +69,62 @@ bool MachinePlayer::will_continue() {
  *
  */
 
-void MachinePlayer::update_score_map() {
+void MachinePlayer::update_playing_scores() {
     // Best card - Highest score -> tries to keep in hand
     std::map<Card, int> new_card_scores;
 
-    // Suits are scored independently
-    for (int s = 0; s < 4; s++) {
-        // Filter only one suit
-        Suit suit = (Suit) s;
-        std::vector<Card> suit_cards = hand.filter(suit);
-
-        // The other cards in this suit will be compared for holes against these.
-        int highest_rank = highestRank(suit_cards);
-        int lowest_rank = lowestRank(suit_cards);
-
-        for (Card card : suit_cards) {
-            int rank = card.getRank();
-            int score = 0;
-
-            // HOLE SCORING: (More holes before card -> lower score -> quicker play)
-            // [A, 2, 3, 4, 5, 8, 6, 7]
-            if (rank <= 8) {
-                int low_ranks[9] {1, 2, 3, 4, 5, 8, 6, 7, -1}; // -1 is to tell loop to stop
-                score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_cards);
-            }
-            // [K, Q, J, X, 9, 8, 6, 7]
-            if (rank >= 6) {
-                int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1}; // -1 is to tell loop to stop
-                score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_cards);
-            }
-
-            // LOCK SCORING: (Cards kept locked by a card -> higher score -> only played when forced)
-            if (rank == highest_rank && rank > 7) {
-                score += 13 - rank;
-            }
-            if (rank == lowest_rank && rank < 7) {
-                score += rank - 1;
-            }
-
-            //qDebug() << "Scored: " << card.id() << ": " << score;
-            new_card_scores[card] = score;
-        }
+    for (Card card : this->hand.toVector()) {
+        int score = score_card_for_play(card, this->hand);
+        //qDebug() << "Scored: " << card.id() << ": " << score;
+        new_card_scores[card] = score;
     }
-    this->card_scores = new_card_scores;
+    this->playing_scores = new_card_scores;
+}
+
+void MachinePlayer::update_giving_scores(Board &board) {
+    std::map<Card, int> new_card_scores;
+
+
+    this->giving_scores = new_card_scores;
+}
+
+int score_card_for_play(Card &card, Deck &deck) {
+    int score = 0;
+    int rank = card.getRank();
+    Suit suit = card.getSuit();
+
+    std::vector<Card> suit_cards = deck.filter(suit);
+
+    // The other cards in this suit will be compared for holes against these.
+    int highest_rank = highestRank(suit_cards);
+    int lowest_rank = lowestRank(suit_cards);
+
+    // HOLE SCORING: (More holes before card -> lower score -> quicker play)
+    // [A, 2, 3, 4, 5, 8, 6, 7]
+    if (rank <= 8) {
+        int low_ranks[9] {1, 2, 3, 4, 5, 8, 6, 7, -1}; // -1 is to tell loop to stop
+        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_cards);
+    }
+    // [K, Q, J, X, 9, 8, 6, 7]
+    if (rank >= 6) {
+        int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1}; // -1 is to tell loop to stop
+        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_cards);
+    }
+
+    // LOCK SCORING: (More cards kept locked by a card -> higher score -> only played when forced)
+    if (rank == highest_rank && rank > 7) {
+        score += 13 - rank;
+    }
+    if (rank == lowest_rank && rank < 7) {
+        score += rank - 1;
+    }
+    return score;
+}
+
+int score_card_for_give(Card &card, Deck &deck, Board &board) {
+    int score = 0;
+
+    return score;
 }
 
 int holeDistance(Card begin, Card end, int sequence[], const Deck &pure_suit_deck) {

@@ -1,19 +1,20 @@
 
 #include "headers/games/humanplayer.h"
+#include "headers/games/machineplayer.h"
 
 HumanPlayer::HumanPlayer()
 {
 
 }
 
-Card_event HumanPlayer::play_card(Board &board) {
+Card HumanPlayer::play_card(Board &board) {
     std::cout << "Player: "<< this->name.toStdString() << "\n";
     std::cout << "\nYour hand is: ";
     hand.print();
     std::cout << "\nYour options are: \n";
     std::vector<Card> options = findOptions(this->hand, board);
     for (Card card : options) {
-        std::cout << card.id().toStdString() << "\n";
+        std::cout << card.id().toStdString() << " score: " << score_card_for_play(card, hand) << "\n";
     }
 
     std::string input;
@@ -24,7 +25,7 @@ Card_event HumanPlayer::play_card(Board &board) {
 
         if (input == "P") {
             std::cout << this->name.toStdString() << " passed.\n";
-            return no_card;
+            return Card(joker, -1);
         }
 
         Card card = QString::fromStdString(input);
@@ -40,10 +41,7 @@ Card_event HumanPlayer::play_card(Board &board) {
 
         Deck* target = board.getOptions(card)[0];
         hand.put(card, *target);
-        if (card.getRank() == 1 || card.getRank() == 13) {
-            return end_card;
-        }
-        return ordinary_card;
+        return card;
     }
 }
 

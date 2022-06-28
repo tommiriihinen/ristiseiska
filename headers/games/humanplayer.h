@@ -8,7 +8,7 @@ class HumanPlayer: public Player
 public:
     HumanPlayer();
 
-    Card_event play_card(Board &board);
+    Card play_card(Board &board);
     void give_card(Player &player);
     bool will_continue();
 

@@ -7,7 +7,8 @@
 #include "qdebug.h"
 
 
-enum Suit { clubs, diamonds, hearts, spades };
+enum Suit { clubs, diamonds, hearts, spades, joker };
+enum Rank { ace = 1, jack = 11, queen = 12, king = 13  };
 
 class Card
 {

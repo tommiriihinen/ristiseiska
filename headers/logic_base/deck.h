@@ -19,7 +19,7 @@ public:
     bool isEmpty();
     bool contains(Card card) const;
     bool contains(QString id) const;
-    int size();
+    int size() const;
     std::vector<Card> filter(Suit suit) const;
     std::vector<Card> filter(int rank) const;
     std::vector<Card> toVector() const;
