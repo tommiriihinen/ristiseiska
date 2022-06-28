@@ -22,6 +22,5 @@ int highestRank(std::vector<Card> const &cards);
 int lowestRank(std::vector<Card> const &cards);
 bool isBetween(int n, int a, int b);
 // Finds what cards can be currently placed
-std::vector<Card> findOptions(Deck deck, Board &board);
 
 #endif // MACHINEPLAYER_H

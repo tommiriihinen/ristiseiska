@@ -9,6 +9,11 @@ Card_event HumanPlayer::play_card(Board &board) {
     std::cout << "Player: "<< this->name.toStdString() << "\n";
     std::cout << "\nYour hand is: ";
     hand.print();
+    std::cout << "\nYour options are: \n";
+    std::vector<Card> options = findOptions(this->hand, board);
+    for (Card card : options) {
+        std::cout << card.id().toStdString() << "\n";
+    }
 
     std::string input;
     bool reading_input = true;

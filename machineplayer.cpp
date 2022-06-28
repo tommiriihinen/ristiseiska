@@ -7,28 +7,8 @@ MachinePlayer::MachinePlayer()
 
 Card_event MachinePlayer::play_card(Board &board) {
 
-    // On an empty board only C7 can be played
-    if (board.isEmpty()) {
-        Card club7 = Card(clubs, 7);
-        if (this->hand.contains(club7)) {
-            Deck* target = board.getOptions(club7)[0];
-            hand.put(club7, *target);
-            std::cout << this->name.toStdString() << " plays "
-                      << club7.id().toStdString() << ". Cards left: "
-                      << this->hand.size() << "\n";
-            return ordinary_card;
-        } else {
-            return no_card;
-        }
-    }
-
     // Figure our what cards can be played
-    std::vector<Card> options;
-    for (Card card : this->hand.toVector()) {
-        if (board.canPlay(card)) {
-            options.push_back(card);
-        }
-    }
+    std::vector<Card> options = findOptions(this->hand, board);
     if (options.empty()) return no_card;
 
     // Choose the best card out of these
@@ -94,32 +74,33 @@ void MachinePlayer::update_score_map() {
     // Best card - Highest score -> tries to keep in hand
     std::map<Card, double> new_card_scores;
 
+    // Suits are scored independently
     for (int s = 0; s < 4; s++) {
         // Filter only one suit
         Suit suit = (Suit) s;
         std::vector<Card> suit_cards = this->hand.filter(suit);
 
+        // The other cards in this suit will be compared for holes against these.
         int highest_rank = highestRank(suit_cards);
         int lowest_rank = lowestRank(suit_cards);
-
 
         for (Card card : suit_cards) {
             int rank = card.getRank();
             double score = 0.0;
 
-            // Hole scoring:
+            // Hole scoring: (More holes before card -> lower score -> quicker play)
             // [A, 2, 3, 4, 5, 6, 8, 7]
             if (rank <= 8) {
-                int low_ranks[9] {1, 2, 3, 4, 5, 6, 8, 7, -1};
+                int low_ranks[9] {1, 2, 3, 4, 5, 6, 8, 7, -1}; // -1 is to tell any loops to stop
                 score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_cards);
             }
             // [K, Q, J, X, 9, 8, 6, 7]
             if (rank >= 6) {
-                int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1};
+                int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1}; // -1 is to tell any loops to stop
                 score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_cards);
             }
 
-            // Lock scoring:
+            // Lock scoring: (Cards kept locked by a card -> higher score -> only played when forced)
             if (rank == highest_rank && rank > 7) {
                 score += 13 - rank;
             }
@@ -179,11 +160,4 @@ bool isBetween(int n, int a, int b) {
     return n > a && n < b;
 }
 
-std::vector<Card> findOptions(Deck deck, Board &board) {
-    std::vector<Card> options;
-    for (Card card : deck.toVector()) {
-        if (board.canPlay(card)) {
-            options.push_back(card);
-        }
-    }
-}
+

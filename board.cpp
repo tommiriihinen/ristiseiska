@@ -5,16 +5,20 @@ Board::Board()
 
 }
 
-bool Board::canPlay(const Card &card) {
+bool Board::canPlay(const Card &card) const {
     return !this->getOptions(card).empty();
 }
 
-std::vector<Deck*> Board::getOptions(const Card &card) {
+std::vector<Deck*> Board::getOptions(const Card &card) const {
     std::vector<Deck*> options;
 
     Suit suit = card.getSuit();
     int rank = card.getRank();
     SuitComponent* sc = this->suitComponents[suit];
+
+    if (this->isEmpty()) {
+        if (!(suit == clubs && rank == 7)) return options;
+    }
 
     if (rank == 7) options.push_back(&sc->seven);
     if (sc->seven.isEmpty()) return options;

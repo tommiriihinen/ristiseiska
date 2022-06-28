@@ -28,4 +28,6 @@ protected:
 
 };
 
+std::vector<Card> findOptions(Deck &deck, Board &board);
+
 #endif // PLAYER_H

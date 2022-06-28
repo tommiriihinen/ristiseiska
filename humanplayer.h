@@ -4,6 +4,8 @@
 #include "player.h"
 #include "board.h"
 
+
+
 class HumanPlayer: public Player
 {
 public:
@@ -13,6 +15,7 @@ public:
     void give_card(Player &player);
     bool will_continue();
 
+private:
 };
 
 #endif // HUMANPLAYER_H

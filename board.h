@@ -14,10 +14,10 @@ public:
     Board();
 
     void print() const;
-    bool canPlay(const Card &card);
+    bool canPlay(const Card &card) const;
     bool isEmpty() const;
     // Finds the decks in which the player is allowed to place a specific card
-    std::vector<Deck*> getOptions(const Card &card);
+    std::vector<Deck*> getOptions(const Card &card) const;
 
 private:
     SuitComponent club, diamond, heart, spade;
