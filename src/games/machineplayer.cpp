@@ -213,7 +213,7 @@ bool isBetween(int n, int a, int b) {
 }
 
 bool canFinish(const Deck &hand, const Board &board) {
-
+    // function to figure if you can finish the game right now
     int fitting_end_cards = 0, fitting_cards = 0;
     for (Card card : hand.toVector()) {
         if (board.canPlay(card)) {

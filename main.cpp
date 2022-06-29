@@ -15,10 +15,10 @@ int main(int argc, char *argv[])
 
     int humans, robots;
     std::string input;
-    std::cout << "How many human players (total max: 7, min: 3): ";
+    std::cout << "How many human players (recommended 1): ";
     std::cin >> input;
     humans = stoi(input);
-    std::cout << "How many robot players (total max: 7, min: 3): ";
+    std::cout << "How many robot players (recommended 2): ";
     std::cin >> input;
     robots = stoi(input);
 
@@ -46,7 +46,10 @@ int main(int argc, char *argv[])
     bool running = true;
     while(running) {
 
-        int games = numberPrompt("How many games to play: ");
+        int games = 1;
+        if (!slow_machines) {
+            games = numberPrompt("How many games to play: ");
+        }
         for (int g = 0; g < games; g++) {
             game->setup();
             game->start();
