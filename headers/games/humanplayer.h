@@ -9,8 +9,8 @@ public:
     HumanPlayer();
 
     Card play_card(Board &board);
-    void give_card(Player &player);
-    bool will_continue();
+    Card give_card(Player &player, const Board &board);
+    bool will_continue(const Board &board);
 
 private:
 };

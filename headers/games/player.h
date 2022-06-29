@@ -13,8 +13,8 @@ public:
 
     // plays the card on board if possible. Returns a joker if couldn't play a card
     virtual Card play_card(Board &board) = 0;
-    virtual void give_card(Player &player) = 0;
-    virtual bool will_continue() = 0;
+    virtual Card give_card(Player &player, const Board &board) = 0;
+    virtual bool will_continue(const Board &board) = 0;
 
     Deck* getDeck() {return &this->hand;}
     void setName(QString name) {this->name = name;}

@@ -9,9 +9,10 @@ Card MachinePlayer::play_card(Board &board) {
 
     // Figure our what cards can be played
     std::vector<Card> options = findOptions(hand, board);
+    // Return joker as a sign of passing.
     if (options.empty()) return Card(joker, -1);
 
-    // Choose the best card out of these
+    Card choice;
     update_playing_scores();
     sort(options.begin(), options.end(),
          [this](const Card &a, const Card &b) -> bool
@@ -19,35 +20,40 @@ Card MachinePlayer::play_card(Board &board) {
          return playing_scores[a] < playing_scores[b];
      });
 
-    for (Card card : options) {
-        qDebug() << "Robo thinks it could play " << card.id() << " score: " << playing_scores[card];
+    choice = options.front();
+
+    // If every card fits go into ending mode
+    if (canFinish(hand, board)) {
+        std::vector<Card> aces = hand.filter(ace);
+        std::vector<Card> kings = hand.filter(king);
+        if (!aces.empty()) choice = aces.front();
+        if (!kings.empty()) choice = kings.front();
     }
 
-    Card card = options.front();
+    Deck* target = board.getOptions(choice)[0];
+    hand.put(choice, *target);
 
-    Deck* target = board.getOptions(card)[0];
-    hand.put(card, *target);
-
-    return card;
+    return choice;
 
 }
 
-void MachinePlayer::give_card(Player &player) {
-    std::vector<Card> cards = hand.toVector();
+Card MachinePlayer::give_card(Player &player, const Board &board) {
 
-    update_playing_scores();
-    sort(cards.begin(), cards.end(),
-         [this](const Card &a, const Card &b) -> bool
-     {
-         return playing_scores[a] < playing_scores[b];
-     });
-    Card card = cards.back(); // very much WIP
+    update_giving_scores(board);
+    std::vector<Card> options = hand.toVector();
+    sort(options.begin(), options.end(),
+        [this](const Card &a, const Card &b) -> bool
+    {
+        return giving_scores[a] < giving_scores[b];
+    });
 
-    hand.put(card, *player.getDeck());
+    Card choice = options.front();
+    hand.put(choice, *player.getDeck());
+    return choice;
 }
 
-bool MachinePlayer::will_continue() {
-    return false;
+bool MachinePlayer::will_continue(const Board &board) {
+    return canFinish(hand, board);
 }
 
 
@@ -59,13 +65,14 @@ bool MachinePlayer::will_continue() {
  * 1.2. the more cards it can keep closed with a single card, the better.
  *
  * GIVING CARDS: Done
- * 2. gives the cards it most needs to be played.
+ * 2. gives the cards that have the lowest potential for playing on the current board
  *
  * CONTINUING: Done
- * 3. never
+ * 3. if able to win
  *
  * AWARENESS OF OTHER PLAYERS:
  * -none
+ *
  *
  */
 
@@ -74,21 +81,23 @@ void MachinePlayer::update_playing_scores() {
     std::map<Card, int> new_card_scores;
 
     for (Card card : this->hand.toVector()) {
-        int score = score_card_for_play(card, this->hand);
+        int score = scoreCardForPlay(card, this->hand);
         //qDebug() << "Scored: " << card.id() << ": " << score;
         new_card_scores[card] = score;
     }
     this->playing_scores = new_card_scores;
 }
 
-void MachinePlayer::update_giving_scores(Board &board) {
+void MachinePlayer::update_giving_scores(const Board &board) {
     std::map<Card, int> new_card_scores;
-
-
+    for (Card card : hand.toVector()) {
+        int score = scoreCardForGive(card, hand, board);
+        new_card_scores[card] = score;
+    }
     this->giving_scores = new_card_scores;
 }
 
-int score_card_for_play(Card &card, Deck &deck) {
+int scoreCardForPlay(const Card &card, const Deck &deck) {
     int score = 0;
     int rank = card.getRank();
     Suit suit = card.getSuit();
@@ -103,27 +112,60 @@ int score_card_for_play(Card &card, Deck &deck) {
     // [A, 2, 3, 4, 5, 8, 6, 7]
     if (rank <= 8) {
         int low_ranks[9] {1, 2, 3, 4, 5, 8, 6, 7, -1}; // -1 is to tell loop to stop
-        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_cards);
+        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_cards) * HAND_HOLE_WEIGHT;
     }
     // [K, Q, J, X, 9, 8, 6, 7]
     if (rank >= 6) {
         int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1}; // -1 is to tell loop to stop
-        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_cards);
+        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_cards) * HAND_HOLE_WEIGHT;
     }
 
     // LOCK SCORING: (More cards kept locked by a card -> higher score -> only played when forced)
     if (rank == highest_rank && rank > 7) {
-        score += 13 - rank;
+        score += (13 - rank) * CARD_LOCK_WEIGHT;
     }
     if (rank == lowest_rank && rank < 7) {
-        score += rank - 1;
+        score += (rank - 1) * CARD_LOCK_WEIGHT;
     }
     return score;
 }
 
-int score_card_for_give(Card &card, Deck &deck, Board &board) {
+int scoreCardForGive(const Card &card, const Deck &deck, const Board &board) {
     int score = 0;
+    int rank = card.getRank();
+    Suit suit = card.getSuit();
 
+    std::vector<Card> suit_cards = deck.filter(suit);
+    // The other cards in this suit will be compared for holes against these.
+    int highest_rank = highestRank(suit_cards);
+    int lowest_rank = lowestRank(suit_cards);
+
+    // PLAYABILITY SCORING:
+    if (rank != highest_rank && rank != lowest_rank) return 99; // dont give anything but your end cards.
+
+    if (rank == ace || rank == king) score += END_CARD_AFFINITY; // giving aces or kings is disincentivezed
+
+    std::vector<Card> suit_board = board.getSuit(suit);
+    if (suit_board.empty()) {
+        highest_rank = 7;
+        lowest_rank = 7;
+        score += -1;
+    } else {
+        highest_rank = highestRank(suit_board);
+        lowest_rank = lowestRank(suit_board);
+    }
+
+
+    // [A, 2, 3, 4, 5, 8, 6, 7]
+    if (rank <= 8) {
+        int low_ranks[9] {1, 2, 3, 4, 5, 8, 6, 7, -1}; // -1 is to tell loop to stop
+        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_board) * BOARD_HOLE_WEIGHT;
+    }
+    // [K, Q, J, X, 9, 8, 6, 7]
+    if (rank >= 6) {
+        int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1}; // -1 is to tell loop to stop
+        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_board) * BOARD_HOLE_WEIGHT;
+    }
     return score;
 }
 
@@ -162,6 +204,20 @@ int lowestRank(std::vector<Card> const &cards) {
 bool isBetween(int n, int a, int b) {
     if (a > b) std::swap(a, b);
     return n > a && n < b;
+}
+
+bool canFinish(const Deck &deck, const Board &board) {
+
+    int fitting_cards = 0;
+    for (Card card : deck.toVector()) {
+        if (board.canPlay(card)) {
+            if (card.getRank() == ace || card.getRank() == king) {
+                fitting_cards++;
+            }
+        }
+    }
+    if (fitting_cards >= deck.size() - 1) return true;
+    return false;
 }
 
 

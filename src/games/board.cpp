@@ -33,6 +33,15 @@ std::vector<Deck*> Board::getOptions(const Card &card) const {
     return options;
 }
 
+std::vector<Card> Board::getSuit(Suit suit) const {
+    std::vector<Card> cards;
+    SuitComponent* sc = suitComponents[suit];
+    for (Card card : sc->higher.toVector()) cards.push_back(card);
+    for (Card card : sc->seven.toVector()) cards.push_back(card);
+    for (Card card : sc->lower.toVector()) cards.push_back(card);
+    return cards;
+}
+
 bool Board::isEmpty() const {
     bool b = true;
     for (SuitComponent* sc : this->suitComponents) {
