@@ -62,15 +62,16 @@ void Game::play_turn(Player* current_player, Player* last_player) {
 
     // No cards played
     if (this->board.isEmpty()) {
-        std::cout << current_player->getName().toStdString() << " dosen't have the Seven of clubss\n";
+        std::cout << current_player->getName().toStdString() << " dosen't have the Seven of clubs\n";
 
     // Couldn't play a card
     } else if (played_card.getSuit() == joker) {
 
-
         std::cout << current_player->getName().toStdString() << " passes.\n";
-        last_player->give_card(*current_player);
-        std::cout << last_player->getName().toStdString() << " gave " << current_player->getName().toStdString() << " a card.\n";
+        Card given_card = last_player->give_card(*current_player, board);
+        std::cout << last_player->getName().toStdString() << " gave "
+                  << current_player->getName().toStdString() << " "
+                  << given_card.id().toStdString() << ".\n";
         current_player->getDeck()->suitSort();
 
     // A card was played
@@ -83,7 +84,7 @@ void Game::play_turn(Player* current_player, Player* last_player) {
         // Played card was an Ace or a King
         if (played_card.getRank() == ace || played_card.getRank() == king) {
 
-            if (current_player->will_continue()) {
+            if (current_player->will_continue(board)) {
                 std::cout << current_player->getName().toStdString() << " continues.\n";
                 play_turn(current_player, last_player);
             } else {
