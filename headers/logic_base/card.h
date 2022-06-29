@@ -18,6 +18,7 @@ public:
         this->rank = rank;
     }
     Card(QString id);
+    Card() {}
 
     Suit  getSuit() const;
     int getRank() const ;
