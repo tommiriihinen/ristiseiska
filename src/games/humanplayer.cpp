@@ -15,7 +15,7 @@ Card HumanPlayer::play_card(Board &board) {
     std::cout << "\nYour options are: \n";
     std::vector<Card> options = findOptions(this->hand, board);
     for (Card card : options) {
-        std::cout << card.id().toStdString() << " score: " << scoreCardForPlay(card, hand) << "\n";
+        std::cout << card.id().toStdString() << "\n"; // << " score: " << scoreCardForPlay(card, hand)
     }
 
     std::string input;
@@ -51,7 +51,7 @@ Card HumanPlayer::give_card(Player &other_player, const Board &board) {
     hand.print();
     std::cout << this->name.toStdString() << " which card to give to " << other_player.getName().toStdString() << "?: ";
     for (Card card : hand.toVector()) {
-        std::cout << card.id().toStdString() << " score: " << scoreCardForGive(card, hand, board) << "\n";
+        std::cout << card.id().toStdString()  << "\n"; //<< " score: " << scoreCardForGive(card, hand, board)
     }
     std::string input;
     bool reading_input = true;

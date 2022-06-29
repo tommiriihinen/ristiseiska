@@ -34,14 +34,17 @@ SocketPlayer::SocketPlayer()
  *
  */
 
-Card play_card(Board &board) {
+Card SocketPlayer::play_card(Board &board) {
+
     return Card();
 }
 
-Card give_card(Player &player, const Board &board) {
+Card SocketPlayer::give_card(Player &player, const Board &board) {
+
     return Card();
 }
 
-bool will_continue(const Board &board) {
+bool SocketPlayer::will_continue(const Board &board) {
+
     return false;
 }

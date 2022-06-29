@@ -11,7 +11,7 @@ const int CARD_LOCK_WEIGHT = 1;
 const int BOARD_HOLE_WEIGHT = 2;
 const int END_CARD_AFFINITY = 1;
 
-class MachinePlayer: public Player
+class MachinePlayer : public Player
 {
 public:
     MachinePlayer(bool slow_play) {
