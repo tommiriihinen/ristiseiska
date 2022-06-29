@@ -75,7 +75,6 @@ void Board::print() const {
 }
 
 Deck Board::clean() {
-    qDebug() << "Cleaning Board.\n";
     Deck cleaning_deck;
     for (SuitComponent* sc : this->suitComponents) {
         sc->higher.transfer(cleaning_deck);

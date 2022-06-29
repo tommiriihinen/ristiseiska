@@ -13,6 +13,7 @@ SOURCES += main.cpp \
     src/games/humanplayer.cpp \
     src/games/machineplayer.cpp \
     src/games/player.cpp \
+    src/games/socketplayer.cpp \
     src/logic_base/card.cpp \
     src/logic_base/dealer.cpp \
     src/logic_base/deck.cpp \
@@ -25,6 +26,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += headers/games/*.h \
+    headers/games/socketplayer.h \
     headers/logic_base/*.h \
     headers/ui/ui.h
 

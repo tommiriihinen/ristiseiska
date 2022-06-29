@@ -14,7 +14,6 @@ void Dealer::clearDecks() {
 }
 
 void Dealer::addCards(Deck &deck) {
-    deck.print();
     deck.transfer(this->dealers_deck);
 }
 
