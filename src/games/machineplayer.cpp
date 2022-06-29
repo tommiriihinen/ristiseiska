@@ -76,6 +76,9 @@ bool MachinePlayer::will_continue(const Board &board) {
  * STRATEGY
  * 4.1. you have only one bad card in suit. Keep the suit closed and try to give the card.
  *
+ * PROBLEMS:
+ * - Doesn't know the value of holding 7 and maybe 6 & 8 in some cases.
+ * - Will think to give cards that are part of a series.
  *
  */
 

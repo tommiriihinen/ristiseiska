@@ -10,7 +10,7 @@ public:
 
     Card play_card(Board &board);
     Card give_card(Player &player, const Board &board);
-    bool will_continue(const Board &board);
+    virtual bool will_continue(const Board &board);
 
 };
 
