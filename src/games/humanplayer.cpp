@@ -14,9 +14,9 @@ Card HumanPlayer::play_card(Board &board) {
     hand.print();
     std::cout << "\nYour options are: \n";
     std::vector<Card> options = findOptions(this->hand, board);
-    for (Card card : options) {
-        std::cout << card.id().toStdString() << "\n"; // << " score: " << scoreCardForPlay(card, hand)
-    }
+//    for (Card card : options) {
+//        std::cout << card.id().toStdString() << " score: " << scoreCardForPlay(card, hand) << "\n";
+//    }
 
     std::string input;
     bool reading_input = true;
