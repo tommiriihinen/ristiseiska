@@ -13,48 +13,50 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
+    int humans, robots;
+    std::string input;
+    std::cout << "How many human players (total max: 7, min: 3): ";
+    std::cin >> input;
+    humans = stoi(input);
+    std::cout << "How many robot players (total max: 7, min: 3): ";
+    std::cin >> input;
+    robots = stoi(input);
 
+    Game* game = new Game();
+
+    // CREATE PLAYERS
+    std::vector<Player*> players;
+    for (int playerN = 1; playerN <= humans; playerN++) {
+        HumanPlayer* player = new HumanPlayer();
+        std::string prefix = "human-";
+        player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
+        game->addPlayer(player);
+        players.push_back(player);
+    }
+    bool slow_machines = false;
+    if (humans > 0) slow_machines = true;
+    for (int playerN = 1; playerN <= robots; playerN++) {
+        MachinePlayer* player = new MachinePlayer(slow_machines);
+        std::string prefix = "robo-";
+        player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
+        game->addPlayer(player);
+        players.push_back(player);
+    }
 
     bool running = true;
     while(running) {
-        // CREATE GAME
-        Game* game = new Game();
 
-        int humans, robots;
-        std::string input;
-        std::cout << "How many human players?: (total max: 7, min: 3): ";
-        std::cin >> input;
-        humans = stoi(input);
-        std::cout << "How many robot players?: (total max: 7, min: 3): ";
-        std::cin >> input;
-        robots = stoi(input);
+        int games = numberPrompt("How many games to play: ");
+        for (int g = 0; g < games; g++) {
+            game->setup();
+            game->start();
+            game->clean();
 
-        // CREATE PLAYERS
-        std::vector<Player*> players;
-        for (int playerN = 1; playerN <= humans; playerN++) {
-            HumanPlayer* player = new HumanPlayer();
-            std::string prefix = "human-";
-            player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
-            game->addPlayer(player);
-            players.push_back(player);
+            for (Player* player : players) {
+                std::cout << player->getName().toStdString() << "'s winrate is: " << player->getWinrate()*100 << "%\n";
+            }
         }
-        bool slow_machines = false;
-        if (humans > 0) slow_machines = true;
-        for (int playerN = 1; playerN <= robots; playerN++) {
-            MachinePlayer* player = new MachinePlayer(slow_machines);
-            std::string prefix = "robo-";
-            player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
-            game->addPlayer(player);
-            players.push_back(player);
-        }
-
-
-        game->setup();
-        std::cout << "The Seven of clubss\n";
-        game->start();
-        delete game;
-
-        running = questionPrompt("Want to play again?");
+        running = questionPrompt("Want to play more?");
     }
 
 

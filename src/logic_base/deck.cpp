@@ -88,8 +88,10 @@ void Deck::put(Deck &target_deck) {
 
 
 void Deck::transfer(Deck &target_deck) {
-    target_deck.cards = this->cards;
-    this->cards.clear();
+    Deck copy = Deck(*this);
+    for (Card card : copy.toVector()) {
+        this->put(card, target_deck);
+    }
 }
 
 void Deck::swap(Deck &target_dec) {
@@ -117,7 +119,7 @@ void Deck::rankSort() {
 }
 
 
-void Deck::print() {
+void Deck::print() const {
     for (Card card : this->cards) {
         card.print();
     }

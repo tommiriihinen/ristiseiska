@@ -19,3 +19,13 @@ bool questionPrompt(std::string prompt) {
 bool questionPrompt(QString prompt) {
     return questionPrompt(prompt.toStdString());
 }
+
+int numberPrompt(std::string prompt) {
+    bool answered = false;
+    while(!answered) {
+        std::cout << prompt << " ";
+        std::string input;
+        std::cin >> input;
+        return stoi(input);
+    }
+}

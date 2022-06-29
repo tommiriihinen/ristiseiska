@@ -12,6 +12,7 @@ public:
 };
 
 bool questionPrompt(std::string prompt);
+int numberPrompt(std::string prompt);
 //bool questionPrompt(QString prompt);
 
 #endif // UI_H

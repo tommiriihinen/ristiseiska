@@ -12,7 +12,7 @@ public:
     Game();
 
     int getTurn() const;
-    void addPlayer(Player* player) {players.push_back(player);}
+    void addPlayer(Player* player);
 
     // before game
     void setup();
@@ -27,9 +27,10 @@ private:
     int turn { 0 };
     Board board;
     std::vector<Player*> players;
-    Dealer dealer;
+    Dealer* dealer;
 
     void play_turn(Player* player, Player* last_player);
+    // returns the player who has won. If no one has, returns nullptr
     Player* check_win();
 };
 

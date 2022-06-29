@@ -14,13 +14,19 @@ void Dealer::clearDecks() {
 }
 
 void Dealer::addCards(Deck &deck) {
+    deck.print();
     deck.transfer(this->dealers_deck);
 }
 
+void Dealer::addCards(std::vector<Card> cards) {
+    Deck deck = Deck(cards);
+    deck.transfer(this->dealers_deck);
+}
 
 void Dealer::deal() {
     for (Deck *deck : this->target_decks) {
         if (!deck->isEmpty()) {
+            std::cout << "Dealer takes: ";
             deck->print();
             deck->transfer(this->dealers_deck);
         }
@@ -32,7 +38,7 @@ void Dealer::deal() {
 
     int turn = 0;
     int n_targets = target_decks.size();
-    while (!this->dealers_deck.isEmpty()) {
+    while (!this->dealers_deck.isEmpty() && n_targets != 0) {
         this->dealers_deck.put(*target_decks[turn % n_targets]);
         turn++;
         for (Deck* deck : target_decks) {
@@ -43,9 +49,13 @@ void Dealer::deal() {
         deck->suitSort();
         deck->print();
     }
+}
 
-
-
+void Dealer::print() {
+    std::cout << "DEALER:\n";
+    std::cout << "number of targets: " << target_decks.size() << "\n";
+    std::cout << "cards: ";
+    this->dealers_deck.print();
 
 }
 

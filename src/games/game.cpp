@@ -2,8 +2,19 @@
 
 Game::Game()
 {
+    Deck stariting_deck;
+    stariting_deck.fill();
+    stariting_deck.print();
 
+    this->dealer = new Dealer();
+    this->dealer->addCards(stariting_deck);
 }
+
+void Game::addPlayer(Player* player) {
+    players.push_back(player);
+    dealer->addDeck(player->getDeck());
+}
+
 
 int Game::getTurn() const {
     return this->turn;
@@ -14,23 +25,14 @@ Board* Game::getBoard() {
 }
 
 void Game::setup() {
-    // CREATE CARDS
-    Deck* main_deck = new Deck();
-    main_deck->fill();
-    main_deck->print();
+    this->dealer->print();
+    this->dealer->deal();
 
-    // DEAL CARDS
-    qDebug() << "Players hands: ";
-    Dealer dealer;
-    dealer.addCards(*main_deck);
-    for (auto player : players) {
-        player->getDeck()->print();
-        dealer.addDeck(player->getDeck());
-    }
-    dealer.deal();
 }
 
 void Game::start() {
+    std::cout << "\n-----------------------The Seven of Clubs-----------------------\n";
+
     this->turn = 0;
     int n = players.size();
     bool game_is_on = true;
@@ -47,13 +49,19 @@ void Game::start() {
         Player* winner = check_win();
         if (winner != nullptr) {
             std::cout <<"\n" << winner->getName().toStdString() << " has won the game!\n";
+            winner->incrementWins();
             game_is_on = false;
         }
     }
+    std::cout << "\n-----------------------the seven of clubs-----------------------\n";
+
+    // count games
+    for (Player* player : players) player->incrementGame();
 }
 
 void Game::clean() {
-
+    Deck cleaned_cards = board.clean();
+    dealer->addCards(cleaned_cards);
 }
 
 void Game::play_turn(Player* current_player, Player* last_player) {
@@ -62,7 +70,7 @@ void Game::play_turn(Player* current_player, Player* last_player) {
 
     // No cards played
     if (this->board.isEmpty()) {
-        std::cout << current_player->getName().toStdString() << " dosen't have the Seven of clubs\n";
+        std::cout << current_player->getName().toStdString() << " doesn't have the Seven of Clubs\n";
 
     // Couldn't play a card
     } else if (played_card.getSuit() == joker) {

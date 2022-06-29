@@ -30,7 +30,7 @@ Card MachinePlayer::play_card(Board &board) {
         if (!kings.empty()) choice = kings.front();
     }
 
-    Deck* target = board.getOptions(choice)[0];
+    Deck* target = board.getOptions(choice).front();
     hand.put(choice, *target);
 
     return choice;
@@ -72,6 +72,9 @@ bool MachinePlayer::will_continue(const Board &board) {
  *
  * AWARENESS OF OTHER PLAYERS:
  * -none
+ *
+ * STRATEGY
+ * 4.1. you have only one bad card in suit. Keep the suit closed and try to give the card.
  *
  *
  */
@@ -206,17 +209,18 @@ bool isBetween(int n, int a, int b) {
     return n > a && n < b;
 }
 
-bool canFinish(const Deck &deck, const Board &board) {
+bool canFinish(const Deck &hand, const Board &board) {
 
-    int fitting_cards = 0;
-    for (Card card : deck.toVector()) {
+    int fitting_end_cards = 0, fitting_cards = 0;
+    for (Card card : hand.toVector()) {
         if (board.canPlay(card)) {
             if (card.getRank() == ace || card.getRank() == king) {
-                fitting_cards++;
+                fitting_end_cards++;
             }
+            fitting_cards++;
         }
     }
-    if (fitting_cards >= deck.size() - 1) return true;
+    if (fitting_end_cards >= hand.size() - 1 && fitting_cards == hand.size()) return true;
     return false;
 }
 

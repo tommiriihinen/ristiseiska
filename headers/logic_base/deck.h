@@ -14,6 +14,7 @@ class Deck
 {
 public:
     Deck() {}
+    Deck(Deck const &d) {this->cards = d.cards; }
     Deck(std::vector<Card> cards) {for (Card card : cards) this->cards.push_back(card);}
 
     bool isEmpty();
@@ -35,7 +36,7 @@ public:
     void suitSort();
     void rankSort();
 
-    void print();
+    void print() const;
 
 private:
     std::vector<Card> cards;
