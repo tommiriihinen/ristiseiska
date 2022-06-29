@@ -1,4 +1,5 @@
 
+#include "headers/ui/ui.h"
 #include "headers/games/humanplayer.h"
 #include "headers/games/machineplayer.h"
 
@@ -24,7 +25,6 @@ Card HumanPlayer::play_card(Board &board) {
         std::cin >> input;
 
         if (input == "P") {
-            std::cout << this->name.toStdString() << " passed.\n";
             return Card(joker, -1);
         }
 
@@ -73,10 +73,6 @@ bool HumanPlayer::will_continue(const Board &board) {
     std::string input;
     bool invalid_input = true;
     while(invalid_input) {
-        std::cout << "Will you continue? (y/n): ";
-        std::cin >> input;
-        if (input == "y") return true;
-        if (input == "n") return false;
-
+        return questionPrompt("Will you continue?");
     }
 }
