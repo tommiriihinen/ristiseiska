@@ -1,6 +1,9 @@
 #ifndef MACHINEPLAYER_H
 #define MACHINEPLAYER_H
 
+#include <chrono> // std::chrono::microseconds
+#include <thread> // std::this_thread::sleep_for
+
 #include "headers/games/player.h"
 
 const int HAND_HOLE_WEIGHT = 1;
@@ -11,7 +14,9 @@ const int END_CARD_AFFINITY = 1;
 class MachinePlayer: public Player
 {
 public:
-    MachinePlayer();
+    MachinePlayer(bool slow_play) {
+        this->settings.slow_play = slow_play;
+    }
 
     Card play_card(Board &board);
     Card give_card(Player &player, const Board &board);
@@ -21,6 +26,15 @@ private:
     std::map<Card, int> playing_scores, giving_scores;
     void update_playing_scores();
     void update_giving_scores(const Board &board);
+
+    struct Settings {
+        bool slow_play { false };
+        bool finishing { true };
+        bool modelopponents { true };
+    };
+
+    Settings settings;
+
 
 };
 

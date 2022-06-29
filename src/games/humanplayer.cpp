@@ -46,6 +46,7 @@ Card HumanPlayer::play_card(Board &board) {
 }
 
 Card HumanPlayer::give_card(Player &other_player, const Board &board) {
+    Card card;
     std::cout << "\nYour hand is: ";
     hand.print();
     std::cout << this->name.toStdString() << " which card to give to " << other_player.getName().toStdString() << "?: ";
@@ -57,7 +58,7 @@ Card HumanPlayer::give_card(Player &other_player, const Board &board) {
     while (reading_input) {
         std::cin >> input;
 
-        Card card = QString::fromStdString(input);
+        card = QString::fromStdString(input);
         if (!hand.contains(card)) {
             std::cout << input << " is not a card in your hand! \n";
             continue;
@@ -65,6 +66,7 @@ Card HumanPlayer::give_card(Player &other_player, const Board &board) {
         this->hand.put(card, *other_player.getDeck());
         reading_input = false;
     }
+    return card;
 }
 
 bool HumanPlayer::will_continue(const Board &board) {

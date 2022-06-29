@@ -1,11 +1,11 @@
 #include "headers/games/machineplayer.h"
 
-MachinePlayer::MachinePlayer()
-{
-
-}
-
 Card MachinePlayer::play_card(Board &board) {
+
+    if (settings.slow_play) {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1500ms);
+    }
 
     // Figure our what cards can be played
     std::vector<Card> options = findOptions(hand, board);

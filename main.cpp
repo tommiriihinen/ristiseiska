@@ -38,8 +38,10 @@ int main(int argc, char *argv[])
             game->addPlayer(player);
             players.push_back(player);
         }
+        bool slow_machines = false;
+        if (humans > 0) slow_machines = true;
         for (int playerN = 1; playerN <= robots; playerN++) {
-            MachinePlayer* player = new MachinePlayer();
+            MachinePlayer* player = new MachinePlayer(slow_machines);
             std::string prefix = "robo-";
             player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
             game->addPlayer(player);
