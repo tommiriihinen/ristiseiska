@@ -6,29 +6,39 @@
 #include "headers/games/board.h"
 #include "qstring.h"
 
-class Player
+enum GameAction {play, give};
+
+// Responsible for making play-decisions
+class Player : public QObject
 {
+    Q_OBJECT
 public:
-    Player();
+    Player(QObject *parent = nullptr) {}
 
-    // plays the card on board if possible. Returns a joker if couldn't play a card
-    virtual Card play_card(Board &board) = 0;
-    virtual Card give_card(Player &player, const Board &board) = 0;
-    virtual bool will_continue(const Board &board) = 0;
+    void incrementWins() {mWins++;}
+    void incrementGame() {mGames++;}
 
-    void incrementWins() {wins++;}
-    void incrementGame() {games++;}
-    double getWinrate() const {return (double) wins/games;}
+    void setName(QString name) {mName = name;}
+    void setBoard(Board* board) {this->board = board;}
 
-    Deck* getDeck() {return &this->hand;}
-    void setName(QString name) {this->name = name;}
-    QString getName() const {return this->name;}
+    Deck* getDeck() {return &mHand;}
+    QString getName() const {return mName;}
+    double getWinrate() const {return (double) mWins/mGames;}
+
+signals:
+    void play_card(Card card, bool continues);
+    void give_card(Card card);
+    void pass_turn();
+
+public slots:
+    virtual void take_action(Player* player, GameAction action) = 0;
 
 protected:
-    Deck hand;
-    QString name;
-    int wins { 0 };
-    int games { 0 };
+    Board* board;
+    Deck mHand;
+    QString mName { "null" };
+    int mWins { 0 };
+    int mGames { 0 };
 
 };
 

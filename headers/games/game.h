@@ -4,14 +4,14 @@
 #include "headers/logic_base/dealer.h"
 #include "headers/games/board.h"
 #include "headers/games/player.h"
-#include "headers/ui/ui.h"
 
-class Game
+// Responsible for moving cards
+class Game : public QObject
 {
+    Q_OBJECT
 public:
-    Game();
+    explicit Game(QObject *parent = nullptr);
 
-    int getTurn() const;
     void addPlayer(Player* player);
 
     // before game
@@ -21,17 +21,36 @@ public:
     // after game
     void clean();
 
-    Board* getBoard();
+    Player* getCurrentPlayer() {return this->current_player;}
+    Player* getLastPlayer() {return this->last_player;}
+    Board* getBoard() {return &this->mBoard;}
+    int getTurn() {return mTurn;}
+
+signals:
+    void take_action(Player* player, GameAction action); // players connected, server ui connected
+    void victory(Player* player); // players connected, server ui connected
+
+public slots:
+    void play_card(Card card, bool continues);
+    void give_card(Card card);
+    void pass_turn();
 
 private:
-    int turn { 0 };
-    Board board;
-    std::vector<Player*> players;
-    Dealer* dealer;
+    int mTurn { 0 };
+    int mSize { 0 };
+    Board mBoard;
+    Dealer mDealer;
 
-    void play_turn(Player* player, Player* last_player);
+    std::vector<Player*> players;
+    Player* current_player, * last_player;
+
+
+    void next_turn();
     // returns the player who has won. If no one has, returns nullptr
     Player* check_win();
 };
+
+bool questionPrompt(std::string prompt);
+int numberPrompt(std::string prompt);
 
 #endif // GAME_H

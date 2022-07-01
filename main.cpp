@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     std::cin >> input;
     robots = stoi(input);
 
-    Game* game = new Game();
+    Game game;
 
     // CREATE PLAYERS
     std::vector<Player*> players;
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
         HumanPlayer* player = new HumanPlayer();
         std::string prefix = "human-";
         player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
-        game->addPlayer(player);
+        game.addPlayer(player);
         players.push_back(player);
     }
     bool slow_machines = false;
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
         MachinePlayer* player = new MachinePlayer(slow_machines);
         std::string prefix = "robo-";
         player->setName(QString::fromStdString(prefix.append(std::to_string(playerN))));
-        game->addPlayer(player);
+        game.addPlayer(player);
         players.push_back(player);
     }
 
@@ -48,9 +48,9 @@ int main(int argc, char *argv[])
 
         int games = numberPrompt("How many games to play: ");
         for (int g = 0; g < games; g++) {
-            game->setup();
-            game->start();
-            game->clean();
+            game.setup();
+            game.start();
+            game.clean();
 
             for (Player* player : players) {
                 std::cout << player->getName().toStdString() << "'s winrate is: " << player->getWinrate()*100 << "%\n";
@@ -58,8 +58,6 @@ int main(int argc, char *argv[])
         }
         running = questionPrompt("Want to play more?");
     }
-
-
-
+    a.exit();
     return a.exec();
 }

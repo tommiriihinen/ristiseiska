@@ -13,7 +13,7 @@ SOURCES += main.cpp \
     src/games/humanplayer.cpp \
     src/games/machineplayer.cpp \
     src/games/player.cpp \
-    src/games/socketplayer.cpp \
+    #src/games/socketplayer.cpp \
     src/logic_base/card.cpp \
     src/logic_base/dealer.cpp \
     src/logic_base/deck.cpp \
@@ -25,8 +25,14 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-HEADERS += headers/games/*.h \
-    headers/games/socketplayer.h \
-    headers/logic_base/*.h \
+HEADERS += headers/games/board.h \
+    headers/games/game.h \
+    headers/games/humanplayer.h \
+    headers/games/machineplayer.h \
+    headers/games/player.h \
+    #src/games/socketplayer.h \
+    headers/logic_base/card.h \
+    headers/logic_base/dealer.h \
+    headers/logic_base/deck.h \
     headers/ui/ui.h
 

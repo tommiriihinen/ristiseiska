@@ -17,6 +17,7 @@ public:
 
     void print() const;
     bool canPlay(const Card &card) const;
+    void playCard(Card &card, Deck &deck);
     bool isEmpty() const;
 
     // Finds the decks in which the player is allowed to place a specific card
@@ -26,8 +27,8 @@ public:
     Deck clean();
 
 private:
-    SuitComponent club, diamond, heart, spade;
-    std::vector<SuitComponent*> suitComponents { &club, &diamond, &heart, &spade };
+    SuitComponent mClubs, mDiamond, mHearts, mSpades;
+    std::vector<SuitComponent*> mSuitComponents { &mClubs, &mDiamond, &mHearts, &mSpades };
 };
 
 #endif // BOARD_H

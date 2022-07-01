@@ -2,9 +2,8 @@
 #include "headers/games/socketplayer.h"
 
 
-SocketPlayer::SocketPlayer()
-{
-
+void SocketPlayer::take_action(Player* player, GameAction action) {
+    return;
 }
 
 /* << PLAY
@@ -33,15 +32,3 @@ SocketPlayer::SocketPlayer()
  * Output Vector size = 53
  *
  */
-
-Card play_card(Board &board) {
-    return Card();
-}
-
-Card give_card(Player &player, const Board &board) {
-    return Card();
-}
-
-bool will_continue(const Board &board) {
-    return false;
-}

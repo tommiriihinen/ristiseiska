@@ -27,7 +27,7 @@ public:
     Card topCard() const;
 
     void fill();
-    void put(Card card, Deck &target_deck);
+    void put(Card &card, Deck &target_deck);
     void put(Deck &target_deck);
     void transfer(Deck &target_deck);
     void swap(Deck &target_dec);

@@ -1,17 +1,51 @@
 #include "headers/games/machineplayer.h"
 
-Card MachinePlayer::play_card(Board &board) {
+MachinePlayer::MachinePlayer(bool slow, QObject *parent) : Player(parent) {
+    mSettings.slow_play = slow;
+    qDebug() << "creating robot";
+}
 
-    if (settings.slow_play) {
+void MachinePlayer::take_action(Player* player, GameAction action) {
+
+    if (player->getName() != this->mName) return;
+
+    if (mSettings.slow_play) {
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(1500ms);
     }
 
-    // Figure our what cards can be played
-    std::vector<Card> options = findOptions(hand, board);
-    // Return joker as a sign of passing.
-    if (options.empty()) return Card(joker, -1);
+    Card choice;
+    bool continues = false;
+    switch (action) {
+    case play:
+        choice = choosePlay();
 
+        if (choice.getSuit() == none) {
+            emit pass_turn();
+            return;
+        }
+        if (choice.getRank() == ace or choice.getRank() == king) {
+            continues = chooseContinue();
+        }
+        emit play_card(choice, continues);
+        break;
+
+    case give:
+        choice = chooseGive();
+        emit give_card(choice);
+        break;
+    }
+}
+
+
+Card MachinePlayer::choosePlay() {
+
+    // Figure our what cards can be played
+    std::vector<Card> options = findOptions(mHand, *board);
+    // If nothing fits, pass
+    if (options.empty()) return Card(none, -1);
+
+    // Choose best option
     Card choice;
     update_playing_scores();
     sort(options.begin(), options.end(),
@@ -19,43 +53,35 @@ Card MachinePlayer::play_card(Board &board) {
      {
          return playing_scores[a] < playing_scores[b];
      });
-
     choice = options.front();
 
-    // If every card fits go into ending mode
-    if (canFinish(hand, board)) {
-        std::vector<Card> aces = hand.filter(ace);
-        std::vector<Card> kings = hand.filter(king);
+    // If can finish this turn first choose an ace or king
+    if (canFinish(mHand, *board)) {
+        std::vector<Card> aces = mHand.filter(ace);
+        std::vector<Card> kings = mHand.filter(king);
         if (!aces.empty()) choice = aces.front();
         if (!kings.empty()) choice = kings.front();
     }
-
-    Deck* target = board.getOptions(choice).front();
-    hand.put(choice, *target);
-
     return choice;
-
 }
 
-Card MachinePlayer::give_card(Player &player, const Board &board) {
+Card MachinePlayer::chooseGive() {
 
-    update_giving_scores(board);
-    std::vector<Card> options = hand.toVector();
+    Card choice;
+    update_giving_scores(*board);
+    std::vector<Card> options = mHand.toVector();
     sort(options.begin(), options.end(),
         [this](const Card &a, const Card &b) -> bool
     {
         return giving_scores[a] < giving_scores[b];
     });
-
-    Card choice = options.front();
-    hand.put(choice, *player.getDeck());
+    choice = options.front();
     return choice;
 }
 
-bool MachinePlayer::will_continue(const Board &board) {
-    return canFinish(hand, board);
+bool MachinePlayer::chooseContinue() {
+    return canFinish(mHand, *board);
 }
-
 
 /* PRINCIPLES:
  *
@@ -86,8 +112,8 @@ void MachinePlayer::update_playing_scores() {
     // Best card - Highest score -> tries to keep in hand
     std::map<Card, int> new_card_scores;
 
-    for (Card card : this->hand.toVector()) {
-        int score = scoreCardForPlay(card, this->hand);
+    for (Card card : mHand.toVector()) {
+        int score = scoreCardForPlay(card, mHand);
         //qDebug() << "Scored: " << card.id() << ": " << score;
         new_card_scores[card] = score;
     }
@@ -96,8 +122,8 @@ void MachinePlayer::update_playing_scores() {
 
 void MachinePlayer::update_giving_scores(const Board &board) {
     std::map<Card, int> new_card_scores;
-    for (Card card : hand.toVector()) {
-        int score = scoreCardForGive(card, hand, board);
+    for (Card card : mHand.toVector()) {
+        int score = scoreCardForGive(card, mHand, board);
         new_card_scores[card] = score;
     }
     this->giving_scores = new_card_scores;

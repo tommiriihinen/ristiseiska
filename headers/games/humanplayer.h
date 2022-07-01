@@ -2,17 +2,25 @@
 #define HUMANPLAYER_H
 
 #include "headers/games/player.h"
+//#include "headers/games/machineplayer.h"
+#include "headers/ui/ui.h"
 
 class HumanPlayer: public Player
 {
+    Q_OBJECT
 public:
-    HumanPlayer();
+    explicit HumanPlayer(QObject *parent = nullptr) : Player(parent) {qDebug() << "creating human";}
 
-    Card play_card(Board &board);
-    Card give_card(Player &player, const Board &board);
-    bool will_continue(const Board &board);
+public slots:
+    void take_action(Player* player, GameAction action) override;
 
 private:
+    Card choosePlay();
+    Card chooseGive();
+    bool chooseContinue();
+
 };
 
 #endif // HUMANPLAYER_H
+
+

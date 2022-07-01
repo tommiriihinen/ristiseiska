@@ -5,13 +5,12 @@
 
 class SocketPlayer : public Player
 {
+    Q_OBJECT
 public:
-    SocketPlayer();
+    explicit SocketPlayer(QObject *parent = nullptr) : Player(parent) {}
 
-    Card play_card(Board &board);
-    Card give_card(Player &player, const Board &board);
-    virtual bool will_continue(const Board &board);
-
+public slots:
+    void take_action(Player* player, GameAction action) override;
 };
 
 #endif // SOCKETPLAYER_H
