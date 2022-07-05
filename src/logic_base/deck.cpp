@@ -1,4 +1,4 @@
-#include "headers/logic_base/deck.h"
+#include "src/logic_base/deck.h"
 
 
 void Deck::fill() {
@@ -116,6 +116,14 @@ void Deck::suitSort() {
 
 void Deck::rankSort() {
     std::sort(this->cards.begin(), this->cards.end());
+}
+
+QString Deck::toString() const {
+    QString s;
+    for (Card card : this->cards) {
+        s.append(card.id().append(" "));
+    }
+    return s;
 }
 
 

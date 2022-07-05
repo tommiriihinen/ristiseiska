@@ -7,7 +7,7 @@
 #include <random>
 #include <vector>
 #include "QDebug"
-#include "headers/logic_base/card.h"
+#include "src/logic_base/card.h"
 
 
 class Deck
@@ -36,6 +36,7 @@ public:
     void suitSort();
     void rankSort();
 
+    QString toString() const;
     void print() const;
 
 private:

@@ -4,7 +4,7 @@
 #include <chrono> // std::chrono::microseconds
 #include <thread> // std::this_thread::sleep_for
 
-#include "headers/games/player.h"
+#include "src/games/player.h"
 
 const int HAND_HOLE_WEIGHT = 1;
 const int CARD_LOCK_WEIGHT = 1;

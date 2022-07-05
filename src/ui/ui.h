@@ -3,7 +3,7 @@
 
 #include <string>
 #include <iostream>
-#include "headers/games/game.h"
+#include "src/games/game.h"
 #include "qstring.h"
 
 class UI : public QObject

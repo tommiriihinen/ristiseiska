@@ -1,9 +1,9 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "headers/logic_base/dealer.h"
-#include "headers/games/board.h"
-#include "headers/games/player.h"
+#include "src/logic_base/dealer.h"
+#include "src/games/board.h"
+#include "src/games/player.h"
 
 // Responsible for moving cards
 class Game : public QObject
@@ -21,6 +21,7 @@ public:
     // after game
     void clean();
 
+    std::vector<Player*> getPlayers() {return this->players;}
     Player* getCurrentPlayer() {return this->current_player;}
     Player* getLastPlayer() {return this->last_player;}
     Board* getBoard() {return &this->mBoard;}
@@ -28,7 +29,7 @@ public:
 
 signals:
     void take_action(Player* player, GameAction action); // players connected, server ui connected
-    void victory(Player* player); // players connected, server ui connected
+    void victory(Player* winner); // players connected, server ui connected
 
 public slots:
     void play_card(Card card, bool continues);

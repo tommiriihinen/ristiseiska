@@ -1,6 +1,7 @@
-#include "headers/games/machineplayer.h"
+#include "src/games/machineplayer.h"
 
-MachinePlayer::MachinePlayer(bool slow, QObject *parent) : Player(parent) {
+MachinePlayer::MachinePlayer(bool slow, QObject *parent)
+    : Player(parent) {
     mSettings.slow_play = slow;
     qDebug() << "creating robot";
 }

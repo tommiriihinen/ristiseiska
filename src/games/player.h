@@ -1,9 +1,9 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "headers/logic_base/card.h"
-#include "headers/logic_base/deck.h"
-#include "headers/games/board.h"
+#include "src/logic_base/card.h"
+#include "src/logic_base/deck.h"
+#include "src/games/board.h"
 #include "qstring.h"
 
 enum GameAction {play, give};
@@ -14,9 +14,6 @@ class Player : public QObject
     Q_OBJECT
 public:
     Player(QObject *parent = nullptr) {}
-
-    void incrementWins() {mWins++;}
-    void incrementGame() {mGames++;}
 
     void setName(QString name) {mName = name;}
     void setBoard(Board* board) {this->board = board;}
@@ -32,6 +29,8 @@ signals:
 
 public slots:
     virtual void take_action(Player* player, GameAction action) = 0;
+    //virtual void turn_switch(Player* current_player);
+    virtual void game_ended(Player* winner);
 
 protected:
     Board* board;
@@ -43,5 +42,6 @@ protected:
 };
 
 std::vector<Card> findOptions(Deck &deck, Board &board);
+bool canPass(Deck &deck, Board &board);
 
 #endif // PLAYER_H

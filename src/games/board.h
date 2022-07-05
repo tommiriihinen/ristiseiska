@@ -1,8 +1,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "headers/logic_base/card.h"
-#include "headers/logic_base/deck.h"
+#include "src/logic_base/card.h"
+#include "src/logic_base/deck.h"
 #include <vector>
 
 
@@ -23,6 +23,8 @@ public:
     // Finds the decks in which the player is allowed to place a specific card
     std::vector<Deck*> getOptions(const Card &card) const;
     std::vector<Card> getSuit(Suit suit) const;
+
+    QString toString() const;
 
     Deck clean();
 

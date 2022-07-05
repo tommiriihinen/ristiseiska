@@ -1,17 +1,16 @@
-#include "headers/games/game.h"
+#include "src/games/game.h"
 
 Game::Game(QObject *parent)
 {
     Deck stariting_deck;
     stariting_deck.fill();
-    stariting_deck.print();
-
     mDealer.addCards(stariting_deck);
 }
 
 void Game::addPlayer(Player* player) {
     players.push_back(player);
     connect(this, &Game::take_action, player, &Player::take_action);
+    connect(this, &Game::victory, player, &Player::game_ended);
     connect(player, &Player::play_card, this, &Game::play_card);
     connect(player, &Player::give_card, this, &Game::give_card);
     connect(player, &Player::pass_turn, this, &Game::pass_turn);
@@ -87,8 +86,6 @@ void Game::next_turn() {
 
     Player* winner = check_win();
     if (winner != nullptr) {
-        winner->incrementWins();
-        for (Player* player : players) player->incrementGame();
         std::cout << current_player->getName().toStdString();
         std::cout << " has won the game.\n";
         emit victory(winner);

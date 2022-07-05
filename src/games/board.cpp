@@ -1,4 +1,4 @@
-#include "headers/games/board.h"
+#include "src/games/board.h"
 
 Board::Board()
 {
@@ -66,7 +66,22 @@ bool Board::isEmpty() const {
 }
 
 void Board::print() const {
+    std::cout << this->toString().toStdString();
+}
 
+
+Deck Board::clean() {
+    Deck cleaning_deck;
+    for (SuitComponent* sc : mSuitComponents) {
+        sc->higher.transfer(cleaning_deck);
+        sc->seven.transfer(cleaning_deck);
+        sc->lower.transfer(cleaning_deck);
+    }
+    return cleaning_deck;
+}
+
+QString Board::toString() const {
+    std::string string;
     std::string top_row, mid_row, bot_row;
     for (SuitComponent* sc : mSuitComponents) {
         if (sc->higher.isEmpty()) top_row.append("  |");
@@ -78,23 +93,12 @@ void Board::print() const {
         if (sc->lower.isEmpty()) bot_row.append("  |");
         else bot_row.append(sc->lower.topCard().id().toStdString().append("|"));
     }
-    std::cout << " +--+--+--+--+\n" <<
-                 " |" << top_row << "\n" <<
-                 " |" << mid_row << "\n" <<
-                 " |" << bot_row << "\n" <<
-                 " +--+--+--+--+\n";
-
-
-}
-
-Deck Board::clean() {
-    Deck cleaning_deck;
-    for (SuitComponent* sc : mSuitComponents) {
-        sc->higher.transfer(cleaning_deck);
-        sc->seven.transfer(cleaning_deck);
-        sc->lower.transfer(cleaning_deck);
-    }
-    return cleaning_deck;
+    string.append(" +--+--+--+--+\n");
+    string.append(" |"+top_row+ "\n");
+    string.append(" |"+mid_row+ "\n");
+    string.append(" |"+bot_row+ "\n");
+    string.append(" +--+--+--+--+\n");
+    return QString::fromStdString(string);
 }
 
 void Board::playCard(Card &card, Deck &deck) {
