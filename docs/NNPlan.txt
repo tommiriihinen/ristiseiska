@@ -1,0 +1,98 @@
+Does history matter?
+	-> Yes, past turns give clues to your opponents cards
+		-> Recurrent neural networks RNNs
+
+Learning process
+	-> Can play millions of games
+		-> Unsupervised
+			-> Genetic Algorithm or Reinforcement Learning?
+				-> Reinforcement, cuz i believe in it
+
+Incomplete knowledge of outcomes?
+	-> Custom error function to ignore certain turns in backprop
+		-> AI won't think it did neutrally when there is no knowledge
+
+Will the model learn from random games?
+	-> Very limited choices in every turn, it is concievable
+	
+Plan:
+1. Plan for what data a RNN would need 
+2. Build a random player
+3. Build a benchmark from the old AI and the random player.
+4. Gather data from old AI (benchmark it)
+5. Build a RL NN
+6. Train it on gathered data
+7. Train it against itself (benchmark generated data and label it with benchmarks )
+8. Build the RNN and train it on this data
+9. Train RNN against itself.
+
+TL;DR
+1. Plan data
+2. RandomPlayer
+3. Benchmark component
+4. Make Data
+5. Make Neural Network
+6. Train it on old data
+7. Train it against itself
+8. RNN->
+
+
+RNN DATA REQUIREMENTS: EVERY GAME MOVE
+
+Number of players:
+ 3  4	 5  6	 7 
+[1, 1, 1, 0, 0]: 5
+Cards in hand:
+[]: 52
+Cards on board:
+[]: 52
+Action:
+[1]:1
+Current Player
+ 1. 2. 3. 4. 5. 6. 7.
+[0, 0, 0, 0, 1, 0, 0]: 7
+His card on this turn:
+[]: 52
+How many cards current player has after turn
+[]: 18
+
+META:
+Winner:
+[0, 0, 1, 0, 0, 0, 0]: 7
+
+Total (5 + 8 + 1 + 52 + 52 + 52 + 18) + 8
+	= 188 + 7 = 195
+
+
+RL NN: in: 111 out: 52
+
+RL RNN: in: 178 out: 52
+
+Storage: 185  (12*16=185+7  and  6*32=185+7)
+
+(Meta data)
+Date: 
+Rnd: 0.3323
+Old: 1.0000
+Start:
+
+Game
+P:[1,0,0,0,0,0] (Players)
+W:[0,0,0,0,0,0,0,0] (Winner)
+Events
+T:[0,1,0,0,0,0,0,0] (Turn)
+A:[1] (Play or Give)
+H:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Hand)
+B:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Board)
+D:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Play)
+N:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Number of cards remaining)
+T:[0,1,0,0,0,0,0,0] (Turn)
+H:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Hand)
+B:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Board)
+D:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Play)
+N:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Number of cards remaining)
+T:[0,1,0,0,0,0,0,0] (Turn)
+H:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Hand)
+B:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Board)
+D:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Play)
+N:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Number of cards remaining)
