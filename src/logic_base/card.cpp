@@ -1,10 +1,10 @@
-#include "headers/logic_base/card.h"
+#include "src/logic_base/card.h"
 
 
 Card::Card(QString id) {
     std::string ids = id.toStdString();
-    Suit suit;
-    int rank;
+    Suit suit = none;
+    int rank = -1;
     switch (ids[0]) {
     case 'C':
         suit = clubs;
