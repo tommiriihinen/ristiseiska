@@ -8,18 +8,15 @@ SocketPlayer::SocketPlayer(QObject *parent)
 
 void SocketPlayer::take_action(Player* player, GameAction action) {
 
-    if (player->getName() != this->mName) {
-        emit send("MSG;" + player->getName() + "'s turn.");
-        return;
-    }
+    qDebug() << mName << ": take_action: " << player->getName();
 
-    qDebug() << "Socket action";
+    if (player->getName() != this->mName) return;
+
     mActionPending = true;
 
     if (action == play) {
         mState = play;
         emit send("PLAY;");
-        emit send("MSG;" + board->toString());
         emit send("MSG;Your cards: " + mHand.toString());
         emit send("MSG;Options:" );
         std::vector<Card> options = findOptions(mHand, *board);
@@ -34,6 +31,7 @@ void SocketPlayer::take_action(Player* player, GameAction action) {
     if (action == give) {
         mState = give;
         emit send("GIVE;");
+        emit send("MSG;Give a card");
         emit send("MSG;Your cards: " + mHand.toString());
     }
 }
@@ -112,6 +110,11 @@ void SocketPlayer::recieve(QString data) {
         return;
     }
 }
+
+void SocketPlayer::announcements(QString message) {
+    emit send("MSG;" + message);
+}
+
 
 /* << PLAY
  * >> C8:1, C9:0, DX:0 ... (activation order)

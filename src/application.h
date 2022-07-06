@@ -23,6 +23,7 @@ signals:
 
 private:
     Game mGame;
+    UI mUI;
     PlayerFactory mPlayerFactory;
 
 };

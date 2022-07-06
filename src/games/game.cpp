@@ -11,9 +11,12 @@ void Game::addPlayer(Player* player) {
     players.push_back(player);
     connect(this, &Game::take_action, player, &Player::take_action);
     connect(this, &Game::victory, player, &Player::game_ended);
-    connect(player, &Player::play_card, this, &Game::play_card);
-    connect(player, &Player::give_card, this, &Game::give_card);
-    connect(player, &Player::pass_turn, this, &Game::pass_turn);
+    connect(player, &Player::play_card, this, &Game::play_card, Qt::QueuedConnection);
+    connect(player, &Player::give_card, this, &Game::give_card, Qt::QueuedConnection);
+    connect(player, &Player::pass_turn, this, &Game::pass_turn, Qt::QueuedConnection);
+    if (SocketPlayer *sp = dynamic_cast<SocketPlayer*>(player)) {
+        connect(this, &Game::announce, sp, &SocketPlayer::announcements);
+    }
     player->setBoard(&mBoard);
     mDealer.addDeck(player->getDeck());
     mSize++;
@@ -24,12 +27,12 @@ void Game::setup() {
 }
 
 void Game::start() {
-    std::cout << "\n-----------------------The Seven of Clubs-----------------------\n";
+    emit announce("\n-----------------------The Seven of Clubs-----------------------\n");
     next_turn();
 }
 
 void Game::clean() {
-    std::cout << "-----------------------the seven of clubs-----------------------\n\n";
+    emit announce("\n-----------------------the seven of clubs-----------------------\n");
     Deck cleaned_cards = mBoard.clean();
     mDealer.addCards(cleaned_cards);
 }
@@ -37,14 +40,10 @@ void Game::clean() {
 
 void Game::play_card(Card card, bool continues) {
 
-    std::cout << current_player->getName().toStdString();
-    std::cout << " played ";
-    std::cout << card.id().toStdString();
-    std::cout << ".\n";
+    emit announce(current_player->getName() + " played " + card.id());
 
     if (continues) {
-        std::cout << current_player->getName().toStdString();
-        std::cout << " will continue.\n";
+        emit announce(current_player->getName() + " will continue");
     }
 
     // player wants to play a card
@@ -57,18 +56,14 @@ void Game::play_card(Card card, bool continues) {
 }
 
 void Game::give_card(Card card) {
-
-    std::cout << current_player->getName().toStdString();
-    std::cout << " took a card form ";
-    std::cout << last_player->getName().toStdString();
-    std::cout << ".\n";
+    emit announce(current_player->getName() + " took a card form " + last_player->getName());
     // player will be given a card by the last player
     last_player->getDeck()->put(card, *current_player->getDeck());
     next_turn();
 }
 
 void Game::pass_turn() {
-
+    emit announce(current_player->getName() + " passed");
     std::cout << current_player->getName().toStdString();
     std::cout << " passed.\n";
 
@@ -82,18 +77,19 @@ void Game::pass_turn() {
 
 void Game::next_turn() {
 
-    mBoard.print();
-
     Player* winner = check_win();
     if (winner != nullptr) {
-        std::cout << current_player->getName().toStdString();
-        std::cout << " has won the game.\n";
+        emit announce(current_player->getName() + " has won the game");
         emit victory(winner);
 
     } else {
         mTurn++;
         this->last_player = current_player;
         this->current_player = players[(mTurn-1) % mSize];
+
+        emit announce(current_player->getName() + "'s turn:");
+        emit announce(mBoard.toString());
+
         emit take_action(current_player, play);
     }
 }

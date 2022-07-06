@@ -1,6 +1,7 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include "src/games/socketplayer.h"
 #include "src/logic_base/dealer.h"
 #include "src/games/board.h"
 #include "src/games/player.h"
@@ -28,8 +29,9 @@ public:
     int getTurn() {return mTurn;}
 
 signals:
-    void take_action(Player* player, GameAction action); // players connected, server ui connected
+    void take_action(Player* player, GameAction action); // players connected ,server ui connected
     void victory(Player* winner); // players connected, server ui connected
+    void announce(QString announcement); // narrates the game on this channel)
 
 public slots:
     void play_card(Card card, bool continues);
