@@ -4,7 +4,7 @@
 #include <QTcpServer>
 #include <QDebug>
 #include "connection.h"
-#include "src/games/socketplayer.h"
+#include "src/players/socketplayer.h"
 
 class Server : public QTcpServer
 {

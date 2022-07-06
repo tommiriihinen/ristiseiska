@@ -1,4 +1,4 @@
-#include "src/games/machineplayer.h"
+#include "machineplayer.h"
 
 MachinePlayer::MachinePlayer(bool slow, QObject *parent)
     : Player(parent) {

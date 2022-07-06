@@ -10,13 +10,14 @@ CONFIG -= app_bundle
 
 SOURCES += main.cpp \
     src/application.cpp \
-    src/games/board.cpp \
-    src/games/game.cpp \
-    src/games/humanplayer.cpp \
-    src/games/machineplayer.cpp \
-    src/games/player.cpp \
-    src/games/playerfactory.cpp \
-    src/games/socketplayer.cpp \
+    src/game_core/board.cpp \
+    src/game_core/game.cpp \
+    src/players/humanplayer.cpp \
+    src/players/machineplayer.cpp \
+    src/players/player.cpp \
+    src/players/playerfactory.cpp \
+    src/players/randomplayer.cpp \
+    src/players/socketplayer.cpp \
     src/logic_base/card.cpp \
     src/logic_base/dealer.cpp \
     src/logic_base/deck.cpp \
@@ -30,14 +31,15 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-HEADERS += src/games/board.h \
-    src/application.h \
-    src/games/game.h \
-    src/games/humanplayer.h \
-    src/games/machineplayer.h \
-    src/games/player.h \
-    src/games/playerfactory.h \
-    src/games/socketplayer.h \
+HEADERS += src/application.h \
+    src/game_core/board.h \
+    src/game_core/game.h \
+    src/players/humanplayer.h \
+    src/players/machineplayer.h \
+    src/players/player.h \
+    src/players/playerfactory.h \
+    src/players/randomplayer.h \
+    src/players/socketplayer.h \
     src/logic_base/card.h \
     src/logic_base/dealer.h \
     src/logic_base/deck.h \

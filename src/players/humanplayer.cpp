@@ -1,5 +1,5 @@
 
-#include "src/games/humanplayer.h"
+#include "humanplayer.h"
 
 
 void HumanPlayer::take_action(Player* player, GameAction action) {

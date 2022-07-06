@@ -3,7 +3,7 @@
 
 #include "src/logic_base/card.h"
 #include "src/logic_base/deck.h"
-#include "src/games/board.h"
+#include "src/game_core/board.h"
 #include "qstring.h"
 
 enum GameAction {play, give};
@@ -20,7 +20,7 @@ public:
 
     Deck* getDeck() {return &mHand;}
     QString getName() const {return mName;}
-    double getWinrate() const {return (double) mWins/mGames;}
+    double getWinrate() const {return (double) mWins/mgame_core;}
 
 signals:
     void play_card(Card card, bool continues);
@@ -37,7 +37,7 @@ protected:
     Deck mHand;
     QString mName { "null" };
     int mWins { 0 };
-    int mGames { 0 };
+    int mgame_core { 0 };
 
 };
 

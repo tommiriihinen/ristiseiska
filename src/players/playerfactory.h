@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <iostream>
-#include "game.h"
+#include "src/game_core/game.h"
 #include "humanplayer.h"
 #include "machineplayer.h"
 #include "socketplayer.h"

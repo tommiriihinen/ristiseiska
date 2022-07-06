@@ -1,8 +1,8 @@
 #ifndef HUMANPLAYER_H
 #define HUMANPLAYER_H
 
-#include "src/games/player.h"
-//#include "src/games/machineplayer.h"
+#include "player.h"
+//#include "src/game_core/machineplayer.h"
 #include "src/ui/ui.h"
 
 class HumanPlayer: public Player

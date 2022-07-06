@@ -1,4 +1,4 @@
-#include "src/games/board.h"
+#include "src/game_core/board.h"
 
 Board::Board()
 {

@@ -2,10 +2,10 @@
 #include <iostream>
 
 #include "src/application.h"
-#include "src/games/game.h"
-#include "src/games/humanplayer.h"
-#include "src/games/machineplayer.h"
-#include "src/games/playerfactory.h"
+#include "src/game_core/game.h"
+#include "src/players/humanplayer.h"
+#include "src/players/machineplayer.h"
+#include "src/players/playerfactory.h"
 
 
 int HUMAN_PLAYERS = 1;

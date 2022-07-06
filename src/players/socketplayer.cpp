@@ -1,5 +1,5 @@
 
-#include "src/games/socketplayer.h"
+#include "socketplayer.h"
 
 SocketPlayer::SocketPlayer(QObject *parent)
     : Player(parent) {

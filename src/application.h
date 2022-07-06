@@ -2,9 +2,9 @@
 #define APPLICATION_H
 
 #include <QObject>
-#include "src/games/game.h"
-#include "src/games/player.h"
-#include "src/games/playerfactory.h"
+#include "src/game_core/game.h"
+#include "src/players/player.h"
+#include "src/players/playerfactory.h"
 
 
 class Application : public QObject

@@ -1,9 +1,9 @@
-#include "src/games/player.h"
+#include "player.h"
 
 
 void Player::game_ended(Player* winner) {
     if (winner->mName == this->mName) mWins++;
-    mGames++;
+    mgame_core++;
 }
 
 std::vector<Card> findOptions(Deck &deck, Board &board) {

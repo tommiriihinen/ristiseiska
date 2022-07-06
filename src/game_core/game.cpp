@@ -1,4 +1,4 @@
-#include "src/games/game.h"
+#include "src/game_core/game.h"
 
 Game::Game(QObject *parent)
 {

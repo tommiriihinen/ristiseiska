@@ -1,10 +1,10 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "src/games/socketplayer.h"
+#include "src/players/socketplayer.h"
 #include "src/logic_base/dealer.h"
-#include "src/games/board.h"
-#include "src/games/player.h"
+#include "src/game_core/board.h"
+#include "src/players/player.h"
 
 // Responsible for moving cards
 class Game : public QObject
