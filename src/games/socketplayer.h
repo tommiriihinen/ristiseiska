@@ -15,10 +15,12 @@ public:
 signals:
     void send(QString data);
     void creationComplete(SocketPlayer* self);
+    void announce(QString message);
 
 public slots:
-    void take_action(Player* player, GameAction action) override;
-    void recieve(QString data);
+    void take_action(Player* player, GameAction action) override; // from game
+    void recieve(QString data); // from connection
+    void announcements(QString message);
 
 private:
     GameAction mState;

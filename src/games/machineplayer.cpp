@@ -8,6 +8,8 @@ MachinePlayer::MachinePlayer(bool slow, QObject *parent)
 
 void MachinePlayer::take_action(Player* player, GameAction action) {
 
+    qDebug() << mName << ": take_action: " << player->getName();
+
     if (player->getName() != this->mName) return;
 
     if (mSettings.slow_play) {

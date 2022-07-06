@@ -97,7 +97,7 @@ QString Board::toString() const {
     string.append(" |"+top_row+ "\n");
     string.append(" |"+mid_row+ "\n");
     string.append(" |"+bot_row+ "\n");
-    string.append(" +--+--+--+--+\n");
+    string.append(" +--+--+--+--+");
     return QString::fromStdString(string);
 }
 

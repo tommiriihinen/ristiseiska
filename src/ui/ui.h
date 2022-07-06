@@ -15,10 +15,7 @@ public:
     void setGame(Game* game);
 
 public slots:
-    void action_expected(Player* player, GameAction action);
-//    void card_played(Card card, bool continues);
-//    void card_given(Card card);
-//    void passed();
+    void announcements(QString message);
 
 private:
     Game* game;

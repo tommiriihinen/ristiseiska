@@ -58,7 +58,7 @@ CONFIG(release, debug|release) {
 win32 {
     #in Windows, you can use & to separate commands
     copyfiles.commands += @echo NOW COPYING ADDITIONAL FILE(S) &
-    copyfiles.commands += @call copy ..\\$${TARGET}\\scripts\\ $${DESTDIR}\\
+    copyfiles.commands += @call copy ..\\$${TARGET}\\python\\ $${DESTDIR}\\
 }
 
 QMAKE_EXTRA_TARGETS += copyfiles

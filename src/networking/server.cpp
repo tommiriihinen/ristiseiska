@@ -32,8 +32,8 @@ void Server::incomingConnection(long long socketDescriptor)
     Connection *thread = new Connection(socketDescriptor, this);
 
     // Connect socketplayer communication to it's corresponding QTcpSocket wrapper (Connection)
-    connect(player, &SocketPlayer::send, thread, &Connection::send, Qt::DirectConnection);
-    connect(thread, &Connection::recieved, player, &SocketPlayer::recieve, Qt::DirectConnection);
+    connect(player, &SocketPlayer::send, thread, &Connection::send);
+    connect(thread, &Connection::recieved, player, &SocketPlayer::recieve);
 
     // Socket player tells when it is ready to play
     connect(player, &SocketPlayer::creationComplete, this, &Server::socketPlayerReady);

@@ -4,6 +4,7 @@ Application::Application(QObject *parent)
     : QObject{parent}
 {
     connect(&mPlayerFactory, &PlayerFactory::allPlayersReady, this, &Application::playersReady);
+    mUI.setGame(&mGame);
 }
 
 void Application::start() {

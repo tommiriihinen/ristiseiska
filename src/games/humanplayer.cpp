@@ -61,6 +61,7 @@ Card HumanPlayer::choosePlay() {
             return card;
         }
     }
+    return Card(none, -1);
 }
 
 Card HumanPlayer::chooseGive() {
@@ -82,6 +83,7 @@ Card HumanPlayer::chooseGive() {
             continue;
         }
     }
+    return card;
 }
 
 bool HumanPlayer::chooseContinue() {
