@@ -1,96 +1,104 @@
-#include "src/games/game.h"
+#include "headers/games/game.h"
 
-Game::Game(QObject *parent)
+Game::Game()
 {
     Deck stariting_deck;
     stariting_deck.fill();
-    mDealer.addCards(stariting_deck);
+    stariting_deck.print();
+
+    this->dealer = new Dealer();
+    this->dealer->addCards(stariting_deck);
 }
 
 void Game::addPlayer(Player* player) {
     players.push_back(player);
-    connect(this, &Game::take_action, player, &Player::take_action);
-    connect(this, &Game::victory, player, &Player::game_ended);
-    connect(player, &Player::play_card, this, &Game::play_card, Qt::QueuedConnection);
-    connect(player, &Player::give_card, this, &Game::give_card, Qt::QueuedConnection);
-    connect(player, &Player::pass_turn, this, &Game::pass_turn, Qt::QueuedConnection);
-    if (SocketPlayer *sp = dynamic_cast<SocketPlayer*>(player)) {
-        connect(this, &Game::announce, sp, &SocketPlayer::announcements);
-    }
-    player->setBoard(&mBoard);
-    mDealer.addDeck(player->getDeck());
-    mSize++;
+    dealer->addDeck(player->getDeck());
+}
+
+
+int Game::getTurn() const {
+    return this->turn;
+}
+
+Board* Game::getBoard() {
+    return &this->board;
 }
 
 void Game::setup() {
-    mDealer.deal();
+    this->dealer->print();
+    this->dealer->deal();
+
 }
 
 void Game::start() {
-    emit announce("\n-----------------------The Seven of Clubs-----------------------\n");
-    next_turn();
+    std::cout << "\n-----------------------The Seven of Clubs-----------------------\n";
+
+    this->turn = 0;
+    int n = players.size();
+    bool game_is_on = true;
+    while(game_is_on) {
+
+        this->turn++;
+        std::cout << "\nTurn: " << turn << "\n";
+        this->board.print();
+
+        Player* current_player = players[(turn-1) % n];
+        Player* last_player = players[(turn-2) % n];
+        play_turn(current_player, last_player);
+
+        Player* winner = check_win();
+        if (winner != nullptr) {
+            std::cout <<"\n" << winner->getName().toStdString() << " has won the game!\n";
+            winner->incrementWins();
+            game_is_on = false;
+        }
+    }
+    std::cout << "\n-----------------------the seven of clubs-----------------------\n";
+
+    // count games
+    for (Player* player : players) player->incrementGame();
 }
 
 void Game::clean() {
-    emit announce("\n-----------------------the seven of clubs-----------------------\n");
-    Deck cleaned_cards = mBoard.clean();
-    mDealer.addCards(cleaned_cards);
+    Deck cleaned_cards = board.clean();
+    dealer->addCards(cleaned_cards);
 }
 
+void Game::play_turn(Player* current_player, Player* last_player) {
 
-void Game::play_card(Card card, bool continues) {
+    Card played_card = current_player->play_card(this->board);
 
-    emit announce(current_player->getName() + " played " + card.id());
+    // No cards played
+    if (this->board.isEmpty()) {
+        std::cout << current_player->getName().toStdString() << " doesn't have the Seven of Clubs\n";
 
-    if (continues) {
-        emit announce(current_player->getName() + " will continue");
-    }
+    // Couldn't play a card
+    } else if (played_card.getSuit() == joker) {
 
-    // player wants to play a card
-    mBoard.playCard(card, *current_player->getDeck());
+        std::cout << current_player->getName().toStdString() << " passes.\n";
+        Card given_card = last_player->give_card(*current_player, board);
+        std::cout << last_player->getName().toStdString() << " gave "
+                  << current_player->getName().toStdString() << " "
+                  << given_card.id().toStdString() << ".\n";
+        current_player->getDeck()->suitSort();
 
-    if ((card.getRank() == ace or card.getRank() == king) and continues) {
-        emit take_action(current_player, play);
-    }
-    next_turn();
-}
-
-void Game::give_card(Card card) {
-    emit announce(current_player->getName() + " took a card form " + last_player->getName());
-    // player will be given a card by the last player
-    last_player->getDeck()->put(card, *current_player->getDeck());
-    next_turn();
-}
-
-void Game::pass_turn() {
-    emit announce(current_player->getName() + " passed");
-    std::cout << current_player->getName().toStdString();
-    std::cout << " passed.\n";
-
-    if (mBoard.isEmpty()) {
-        next_turn();
+    // A card was played
     } else {
-        emit take_action(last_player, give);
-    }
+        // Announce the played card
+        std::cout << current_player->getName().toStdString() << " plays "
+                  << played_card.id().toStdString() << ". Cards left: "
+                  << current_player->getDeck()->size() << "\n";
 
-}
+        // Played card was an Ace or a King
+        if (played_card.getRank() == ace || played_card.getRank() == king) {
 
-void Game::next_turn() {
-
-    Player* winner = check_win();
-    if (winner != nullptr) {
-        emit announce(current_player->getName() + " has won the game");
-        emit victory(winner);
-
-    } else {
-        mTurn++;
-        this->last_player = current_player;
-        this->current_player = players[(mTurn-1) % mSize];
-
-        emit announce(current_player->getName() + "'s turn:");
-        emit announce(mBoard.toString());
-
-        emit take_action(current_player, play);
+            if (current_player->will_continue(board)) {
+                std::cout << current_player->getName().toStdString() << " continues.\n";
+                play_turn(current_player, last_player);
+            } else {
+                std::cout << current_player->getName().toStdString() << " doesn't continue.\n";
+            }
+        }
     }
 }
 
@@ -102,25 +110,4 @@ Player* Game::check_win() {
         }
     }
     return winner;
-}
-
-bool questionPrompt(std::string prompt) {
-    bool answered = false;
-    while(!answered) {
-        std::cout << prompt << " (y/n): ";
-        std::string input;
-        std::cin >> input;
-        if (input == "Y" || input == "y") return true;
-        if (input == "N" || input == "n") return false;
-    }
-}
-
-int numberPrompt(std::string prompt) {
-    bool answered = false;
-    while(!answered) {
-        std::cout << prompt << " ";
-        std::string input;
-        std::cin >> input;
-        return stoi(input);
-    }
 }
