@@ -6,6 +6,12 @@
 #include "src/game_core/board.h"
 #include "src/players/player.h"
 
+enum class SeatChange {static_seats, roundrobin, random};
+
+struct GameSettings {
+    SeatChange seat_change { SeatChange::random };
+};
+
 // Responsible for moving cards
 class Game : public QObject
 {
@@ -31,7 +37,8 @@ public:
 signals:
     void take_action(Player* player, GameAction action); // players connected ,server ui connected
     void victory(Player* winner); // players connected, server ui connected
-    void announce(QString announcement); // narrates the game on this channel)
+    void announce(QString message); // narrates the game on this channel)
+    void whisper(Player* target, QString message);
 
 public slots:
     void play_card(Card card, bool continues);
@@ -43,6 +50,7 @@ private:
     int mSize { 0 };
     Board mBoard;
     Dealer mDealer;
+    GameSettings mSettings;
 
     std::vector<Player*> players;
     Player* current_player, * last_player;
@@ -52,8 +60,5 @@ private:
     // returns the player who has won. If no one has, returns nullptr
     Player* check_win();
 };
-
-bool questionPrompt(std::string prompt);
-int numberPrompt(std::string prompt);
 
 #endif // GAME_H

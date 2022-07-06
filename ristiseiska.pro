@@ -23,7 +23,8 @@ SOURCES += main.cpp \
     src/logic_base/deck.cpp \
     src/networking/server.cpp \
     src/ui/ui.cpp \
-    src/networking/connection.cpp
+    src/networking/connection.cpp \
+    src/util.cpp
 
 
 # Default rules for deployment.
@@ -45,7 +46,8 @@ HEADERS += src/application.h \
     src/logic_base/deck.h \
     src/networking/server.h \
     src/ui/ui.h \
-    src/networking/connection.h
+    src/networking/connection.h \
+    src/util.h
 
 RESOURCES += \
     resource.qrc

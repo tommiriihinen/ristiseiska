@@ -8,8 +8,6 @@ SocketPlayer::SocketPlayer(QObject *parent)
 
 void SocketPlayer::take_action(Player* player, GameAction action) {
 
-    qDebug() << mName << ": take_action: " << player->getName();
-
     if (player->getName() != this->mName) return;
 
     mActionPending = true;
@@ -48,7 +46,6 @@ void SocketPlayer::recieve(QString data) {
     }
 
     if (!mActionPending) {
-        std::cout << mName.toStdString() << ": " << data.toStdString();
         return;
     }
 
@@ -70,7 +67,6 @@ void SocketPlayer::recieve(QString data) {
         }
 
         Card card = Card(parts[0]);
-        card.print();
         if (card.getSuit() == none or card.getRank() == -1) {
             emit send("ERROR;Not a valid card");
             return;
@@ -114,6 +110,13 @@ void SocketPlayer::recieve(QString data) {
 void SocketPlayer::announcements(QString message) {
     emit send("MSG;" + message);
 }
+
+void SocketPlayer::whispers(Player* target, QString message) {
+    if (this == dynamic_cast<SocketPlayer*>(target)) {
+        emit send("MSG;" + message);
+    }
+}
+
 
 
 /* << PLAY

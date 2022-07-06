@@ -1,14 +1,15 @@
 #include "machineplayer.h"
 
-MachinePlayer::MachinePlayer(bool slow, QObject *parent)
+MachinePlayer::MachinePlayer(QObject *parent)
     : Player(parent) {
-    mSettings.slow_play = slow;
     qDebug() << "creating robot";
 }
 
-void MachinePlayer::take_action(Player* player, GameAction action) {
+void MachinePlayer::setSettings(MISettings s) {
+    this->mSettings = s;
+}
 
-    qDebug() << mName << ": take_action: " << player->getName();
+void MachinePlayer::take_action(Player* player, GameAction action) {
 
     if (player->getName() != this->mName) return;
 
@@ -116,8 +117,7 @@ void MachinePlayer::update_playing_scores() {
     std::map<Card, int> new_card_scores;
 
     for (Card card : mHand.toVector()) {
-        int score = scoreCardForPlay(card, mHand);
-        //qDebug() << "Scored: " << card.id() << ": " << score;
+        int score = scoreCardForPlay(card, mHand, mSettings.weights);
         new_card_scores[card] = score;
     }
     this->playing_scores = new_card_scores;
@@ -126,13 +126,13 @@ void MachinePlayer::update_playing_scores() {
 void MachinePlayer::update_giving_scores(const Board &board) {
     std::map<Card, int> new_card_scores;
     for (Card card : mHand.toVector()) {
-        int score = scoreCardForGive(card, mHand, board);
+        int score = scoreCardForGive(card, mHand, board, mSettings.weights);
         new_card_scores[card] = score;
     }
     this->giving_scores = new_card_scores;
 }
 
-int scoreCardForPlay(const Card &card, const Deck &deck) {
+int MachinePlayer::scoreCardForPlay(const Card &card, const Deck &deck, const MIWeights &w) {
     int score = 0;
     int rank = card.getRank();
     Suit suit = card.getSuit();
@@ -147,25 +147,25 @@ int scoreCardForPlay(const Card &card, const Deck &deck) {
     // [A, 2, 3, 4, 5, 8, 6, 7]
     if (rank <= 8) {
         int low_ranks[9] {1, 2, 3, 4, 5, 8, 6, 7, -1}; // -1 is to tell loop to stop
-        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_cards) * HAND_HOLE_WEIGHT;
+        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_cards) * w.hand_hole_weight;
     }
     // [K, Q, J, X, 9, 8, 6, 7]
     if (rank >= 6) {
         int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1}; // -1 is to tell loop to stop
-        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_cards) * HAND_HOLE_WEIGHT;
+        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_cards) * w.hand_hole_weight;
     }
 
     // LOCK SCORING: (More cards kept locked by a card -> higher score -> only played when forced)
     if (rank == highest_rank && rank > 7) {
-        score += (13 - rank) * CARD_LOCK_WEIGHT;
+        score += (13 - rank) * w.card_lock_weigth;
     }
     if (rank == lowest_rank && rank < 7) {
-        score += (rank - 1) * CARD_LOCK_WEIGHT;
+        score += (rank - 1) * w.card_lock_weigth;
     }
     return score;
 }
 
-int scoreCardForGive(const Card &card, const Deck &deck, const Board &board) {
+int MachinePlayer::scoreCardForGive(const Card &card, const Deck &deck, const Board &board, const MIWeights &w) {
     int score = 0;
     int rank = card.getRank();
     Suit suit = card.getSuit();
@@ -178,7 +178,7 @@ int scoreCardForGive(const Card &card, const Deck &deck, const Board &board) {
     // PLAYABILITY SCORING:
     if (rank != highest_rank && rank != lowest_rank) return 99; // dont give anything but your end cards.
 
-    if (rank == ace || rank == king) score += END_CARD_AFFINITY; // giving aces or kings is disincentivezed
+    if (rank == ace || rank == king) score += w.end_card_affinity; // giving aces or kings is disincentivezed
 
     std::vector<Card> suit_board = board.getSuit(suit);
     if (suit_board.empty()) {
@@ -194,12 +194,12 @@ int scoreCardForGive(const Card &card, const Deck &deck, const Board &board) {
     // [A, 2, 3, 4, 5, 8, 6, 7]
     if (rank <= 8) {
         int low_ranks[9] {1, 2, 3, 4, 5, 8, 6, 7, -1}; // -1 is to tell loop to stop
-        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_board) * BOARD_HOLE_WEIGHT;
+        score -= holeDistance(card, Card(suit, lowest_rank), low_ranks, suit_board) * w.board_hole_weight;
     }
     // [K, Q, J, X, 9, 8, 6, 7]
     if (rank >= 6) {
         int high_ranks[9] {13, 12, 11, 10, 9, 8, 6, 7, -1}; // -1 is to tell loop to stop
-        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_board) * BOARD_HOLE_WEIGHT;
+        score -= holeDistance(card, Card(suit, highest_rank), high_ranks, suit_board) * w.board_hole_weight;
     }
     return score;
 }
@@ -256,4 +256,16 @@ bool canFinish(const Deck &hand, const Board &board) {
     return false;
 }
 
-
+MISettings MachinePlayer::askSettings() {
+    MISettings s;
+    s.slow_play = Util::questionPrompt("Slow play");
+    s.finishing = Util::questionPrompt("Finishing");
+    if (Util::questionPrompt("Weights")) {
+        MIWeights &w = s.weights;
+        w.board_hole_weight = Util::numberPrompt("board_hole_weight (default 1)");
+        w.hand_hole_weight  = Util::numberPrompt("hand_hole_weight  (default 1)");
+        w.card_lock_weigth  = Util::numberPrompt("card_lock_weigth  (default 2)");
+        w.end_card_affinity = Util::numberPrompt("end_card_affinity (default 1)");
+    }
+    return s;
+}

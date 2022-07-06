@@ -87,5 +87,5 @@ Card HumanPlayer::chooseGive() {
 }
 
 bool HumanPlayer::chooseContinue() {
-    return questionPrompt("Will you continue?");
+    return Util::questionPrompt("Will you continue?");
 }

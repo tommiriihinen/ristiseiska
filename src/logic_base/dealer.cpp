@@ -26,14 +26,11 @@ void Dealer::deal() {
 
     for (Deck *deck : this->target_decks) {
         if (!deck->isEmpty()) {
-            std::cout << "Dealer takes: ";
-            deck->print();
             deck->transfer(this->dealers_deck);
         }
     }
     std::cout << "Dealer shuffles.\n";
     this->dealers_deck.shuffle();
-    this->dealers_deck.print();
     std::cout << "Dealer deals.\n";
 
     int turn = 0;

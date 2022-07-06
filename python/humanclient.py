@@ -9,6 +9,8 @@ HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
 
 nickname = input("Choose your nickname: ")
+print("        Your name is: " + nickname + "\n")
+print("Waiting for the server to start the game")
 
 # Connecting To Server
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -63,7 +65,7 @@ def receive():
                 print("An error occured!")
                 client.send(str(e).encode('UTF-8'))
             except:
-                print("It was fatal!")
+                print("It was connection lost, goodbye!")
                 client.close()
                 os._exit(1)
 

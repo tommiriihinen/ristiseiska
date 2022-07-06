@@ -1,16 +1,17 @@
 #ifndef PLAYERFACTORY_H
 #define PLAYERFACTORY_H
 
+#include <QDir>
+#include <QCoreApplication>
 #include <QObject>
 #include <iostream>
 #include "src/game_core/game.h"
+#include "src/networking/server.h"
+#include "src/networking/connection.h"
 #include "humanplayer.h"
 #include "machineplayer.h"
 #include "socketplayer.h"
-#include "src/networking/server.h"
-#include "src/networking/connection.h"
-#include <QDir>
-#include <QCoreApplication>
+#include "randomplayer.h"
 
 class PlayerFactory : public QObject
 {
@@ -30,3 +31,5 @@ private:
 };
 
 #endif // PLAYERFACTORY_H
+
+
