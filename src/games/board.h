@@ -1,8 +1,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "headers/logic_base/card.h"
-#include "headers/logic_base/deck.h"
+#include "src/logic_base/card.h"
+#include "src/logic_base/deck.h"
 #include <vector>
 
 
@@ -17,17 +17,20 @@ public:
 
     void print() const;
     bool canPlay(const Card &card) const;
+    void playCard(Card &card, Deck &deck);
     bool isEmpty() const;
 
     // Finds the decks in which the player is allowed to place a specific card
     std::vector<Deck*> getOptions(const Card &card) const;
     std::vector<Card> getSuit(Suit suit) const;
 
+    QString toString() const;
+
     Deck clean();
 
 private:
-    SuitComponent club, diamond, heart, spade;
-    std::vector<SuitComponent*> suitComponents { &club, &diamond, &heart, &spade };
+    SuitComponent mClubs, mDiamond, mHearts, mSpades;
+    std::vector<SuitComponent*> mSuitComponents { &mClubs, &mDiamond, &mHearts, &mSpades };
 };
 
 #endif // BOARD_H

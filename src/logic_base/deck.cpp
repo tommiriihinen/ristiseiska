@@ -1,4 +1,4 @@
-#include "headers/logic_base/deck.h"
+#include "src/logic_base/deck.h"
 
 
 void Deck::fill() {
@@ -64,7 +64,7 @@ Card Deck::topCard() const {
     return this->cards.back();
 }
 
-void Deck::put(Card card, Deck &target_deck) {
+void Deck::put(Card &card, Deck &target_deck) {
     // qDebug() << "PUT: " << card.id() << "\n";
     if (!this->contains(card)) throw std::invalid_argument( "starting deck doesn't have the card!" );
     if (target_deck.contains(card)) throw std::invalid_argument( "target deck already has the card!" );
@@ -116,6 +116,14 @@ void Deck::suitSort() {
 
 void Deck::rankSort() {
     std::sort(this->cards.begin(), this->cards.end());
+}
+
+QString Deck::toString() const {
+    QString s;
+    for (Card card : this->cards) {
+        s.append(card.id().append(" "));
+    }
+    return s;
 }
 
 

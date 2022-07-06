@@ -18,7 +18,6 @@ public:
     void addCards(Deck &deck);
     void addCards(std::vector<Card> cards);
     void deal();
-    void print();
 
 private:
     std::vector<Deck*> target_decks;

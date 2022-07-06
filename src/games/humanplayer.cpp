@@ -1,62 +1,76 @@
 
-#include "headers/ui/ui.h"
-#include "headers/games/humanplayer.h"
-#include "headers/games/machineplayer.h"
+#include "src/games/humanplayer.h"
 
-HumanPlayer::HumanPlayer()
-{
 
+void HumanPlayer::take_action(Player* player, GameAction action) {
+
+    if (player->getName() != this->mName) return;
+
+    Card choice;
+    bool continues = false;
+    switch (action) {
+    case play:
+        choice = choosePlay();
+
+        if (choice.getSuit() == none) {
+            emit pass_turn();
+            return;
+        }
+        if (choice.getRank() == ace or choice.getRank() == king) {
+            continues = chooseContinue();
+        }
+        emit play_card(choice, continues);
+        break;
+
+    case give:
+        choice = chooseGive();
+        emit give_card(choice);
+        break;
+    }
 }
 
-Card HumanPlayer::play_card(Board &board) {
-    std::cout << "Player: "<< this->name.toStdString() << "\n";
-    std::cout << "\nYour hand is: ";
-    hand.print();
-    std::cout << "\nYour options are: \n";
-    std::vector<Card> options = findOptions(this->hand, board);
-    for (Card card : options) {
-        std::cout << card.id().toStdString() << "\n"; //" score: " << scoreCardForPlay(card, hand) <<
-    }
+Card HumanPlayer::choosePlay() {
+    std::cout << "Your hand is: ";
+    mHand.print();
+
+    std::vector<Card> options = findOptions(mHand, *board);
+
+    std::cout << "Your options are: ";
+    for (Card card : options) std::cout << card.id().toStdString() << " "; //<< " score: " << scoreCardForPlay(card, hand)
+    std::cout << "\n";
 
     std::string input;
     bool reading_input = true;
     while (reading_input) {
-        std::cout << "Play a card ([C]lubs/[D]iamonds/[H]earts/[S]pades, example: C7) or [P]ass: ";
+        std::cout << "Play card or [P]ass: ";
         std::cin >> input;
 
         if (input == "P") {
-            if (!options.empty()) {
-                std::cout << "Can't pass while can play!\n";
+            return Card(none, -1);
+
+        } else {
+            Card card = QString::fromStdString(input);
+            if (!mHand.contains(card)) {
+                std::cout << input << " is not a card in your hand.\n";
                 continue;
-            } else {
-                return Card(joker, -1);
             }
+            if (!board->canPlay(card)) {
+                std::cout << input << " doesn't fit on the board.\n";
+                continue;
+            }
+            return card;
         }
-
-        Card card = QString::fromStdString(input);
-        if (!hand.contains(card)) {
-            std::cout << input << " is not a card in your hand!\n";
-            continue;
-        }
-
-        if (!board.canPlay(card)) {
-            std::cout << input << " doesn't fit on the board!\n";
-            continue;
-        }
-
-        Deck* target = board.getOptions(card)[0];
-        hand.put(card, *target);
-        return card;
     }
+    return Card(none, -1);
 }
 
-Card HumanPlayer::give_card(Player &other_player, const Board &board) {
+Card HumanPlayer::chooseGive() {
     Card card;
     std::cout << "\nYour hand is: ";
-    hand.print();
-    std::cout << this->name.toStdString() << " which card to give to " << other_player.getName().toStdString() << "?: ";
+    mHand.print();
+    std::cout << mName.toStdString() << " which card to give to last player: ";
 //    for (Card card : hand.toVector()) {
-//        std::cout << card.id().toStdString() << " score: " << scoreCardForGive(card, hand, board) << "\n";
+//        std::cout << card.id().toStdString() << "\n"; // << " score: " << scoreCardForGive(card, hand, board)
 //    }
     std::string input;
     bool reading_input = true;
@@ -64,20 +78,14 @@ Card HumanPlayer::give_card(Player &other_player, const Board &board) {
         std::cin >> input;
 
         card = QString::fromStdString(input);
-        if (!hand.contains(card)) {
-            std::cout << input << " is not a card in your hand! \n";
+        if (!mHand.contains(card)) {
+            std::cout << input << " is not a card in your hand.\n";
             continue;
         }
-        this->hand.put(card, *other_player.getDeck());
-        reading_input = false;
     }
     return card;
 }
 
-bool HumanPlayer::will_continue(const Board &board) {
-    std::string input;
-    bool invalid_input = true;
-    while(invalid_input) {
-        return questionPrompt("Will you continue?");
-    }
+bool HumanPlayer::chooseContinue() {
+    return questionPrompt("Will you continue?");
 }

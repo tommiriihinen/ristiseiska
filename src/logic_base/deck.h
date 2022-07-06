@@ -7,7 +7,7 @@
 #include <random>
 #include <vector>
 #include "QDebug"
-#include "headers/logic_base/card.h"
+#include "src/logic_base/card.h"
 
 
 class Deck
@@ -27,7 +27,7 @@ public:
     Card topCard() const;
 
     void fill();
-    void put(Card card, Deck &target_deck);
+    void put(Card &card, Deck &target_deck);
     void put(Deck &target_deck);
     void transfer(Deck &target_deck);
     void swap(Deck &target_dec);
@@ -36,6 +36,7 @@ public:
     void suitSort();
     void rankSort();
 
+    QString toString() const;
     void print() const;
 
 private:
