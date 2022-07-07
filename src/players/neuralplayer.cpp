@@ -1,7 +1,6 @@
+#include "neuralplayer.h"
 
-#include "socketplayer.h"
-
-void SocketPlayer::take_action(Player* player, GameAction action) {
+void NeuralPlayer::take_action(Player* player, GameAction action) {
 
     if (this != player) return;
 
@@ -30,7 +29,7 @@ void SocketPlayer::take_action(Player* player, GameAction action) {
 }
 
 
-void SocketPlayer::recieve(QString data) {
+void NeuralPlayer::recieve(QString data) {
 
     if (mName == "null") {
         mName = data;
@@ -96,42 +95,12 @@ void SocketPlayer::recieve(QString data) {
     }
 }
 
-void SocketPlayer::announcements(QString message) {
+void NeuralPlayer::announcements(QString message) {
     emit send("MSG;" + message);
 }
 
-void SocketPlayer::whispers(Player* target, QString message) {
+void NeuralPlayer::whispers(Player* target, QString message) {
     if (this == dynamic_cast<SocketPlayer*>(target)) {
         emit send("MSG;" + message);
     }
 }
-
-
-
-/* << PLAY
- * >> C8:1, C9:0, DX:0 ... (activation order)
- * << PLAYED C9
- *
- * << GIVE
- * >> DA, HA, HK ... (activation order)
- *
- * << PLAYED D9
- * << PLAY
- * >> ...
- *
- * [n players] min 3 max 7
- * [1, 2, 3, 4, 5, 6, 7] number of cards in hand (max 18, min 0)
- * [play, give] wanted action
- * [1, ..., 52] hand
- * [1, ..., 52] board
- * [1, ..., 52] others hands
- *
- * Input Vector size = 166
- *
- * [1, ..., 52] cards
- * [continue]
- *
- * Output Vector size = 53
- *
- */
-

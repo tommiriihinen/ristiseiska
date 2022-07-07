@@ -1,17 +1,12 @@
 #include "machineplayer.h"
 
-MachinePlayer::MachinePlayer(QObject *parent)
-    : Player(parent) {
-    qDebug() << "creating robot";
-}
-
 void MachinePlayer::setSettings(MISettings s) {
     this->mSettings = s;
 }
 
 void MachinePlayer::take_action(Player* player, GameAction action) {
 
-    if (player->getName() != this->mName) return;
+    if (this != player) return;
 
     if (mSettings.slow_play) {
         using namespace std::chrono_literals;
@@ -190,7 +185,6 @@ int MachinePlayer::scoreCardForGive(const Card &card, const Deck &deck, const Bo
         lowest_rank = lowestRank(suit_board);
     }
 
-
     // [A, 2, 3, 4, 5, 8, 6, 7]
     if (rank <= 8) {
         int low_ranks[9] {1, 2, 3, 4, 5, 8, 6, 7, -1}; // -1 is to tell loop to stop
@@ -260,7 +254,7 @@ MISettings MachinePlayer::askSettings() {
     MISettings s;
     s.slow_play = Util::questionPrompt("Slow play");
     s.finishing = Util::questionPrompt("Finishing");
-    if (Util::questionPrompt("Weights")) {
+    if (Util::questionPrompt("Change weights")) {
         MIWeights &w = s.weights;
         w.board_hole_weight = Util::numberPrompt("board_hole_weight (default 1)");
         w.hand_hole_weight  = Util::numberPrompt("hand_hole_weight  (default 1)");

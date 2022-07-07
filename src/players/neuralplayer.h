@@ -1,17 +1,13 @@
-#ifndef HUMANPLAYER_H
-#define HUMANPLAYER_H
+#ifndef NEURALPLAYER_H
+#define NEURALPLAYER_H
 
-#include "player.h"
-#include "src/players/socketplayer.h"
-#include "src/util.h"
+#include "socketplayer.h"
 
-
-class HumanPlayer: public SocketPlayer
+class NeuralPlayer : public SocketPlayer
 {
     Q_OBJECT
 public:
-    explicit HumanPlayer(QObject *parent = nullptr)
-        : SocketPlayer(parent) {}
+    explicit NeuralPlayer(QObject *parent = nullptr);
 
 signals:
     void send(QString data);
@@ -29,6 +25,4 @@ private:
     bool mActionPending;
 };
 
-#endif // HUMANPLAYER_H
-
-
+#endif // NEURALPLAYER_H

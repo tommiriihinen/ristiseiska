@@ -8,7 +8,8 @@ class RandomPlayer : public Player
 {
     Q_OBJECT
 public:
-    explicit RandomPlayer(QObject *parent = nullptr) : Player(parent) {qDebug() << "creating random";}
+    explicit RandomPlayer(QObject *parent = nullptr)
+        : Player(parent) {}
 
 public slots:
     void take_action(Player* player, GameAction action) override;

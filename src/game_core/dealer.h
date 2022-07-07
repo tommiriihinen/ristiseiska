@@ -14,14 +14,20 @@ public:
     Dealer();
 
     void addDeck(Deck* deck);
+    void removeDeck(Deck* deck);
     void clearDecks();
     void addCards(Deck &deck);
     void addCards(std::vector<Card> cards);
+    Deck getDeck() {return dealers_deck;}
+
     void deal();
+    void gather();
+
 
 private:
-    std::vector<Deck*> target_decks;
     Deck dealers_deck;
+    std::vector<Deck*> target_decks;
+
     int source(int i) { return std::rand()%i;}
 };
 

@@ -7,31 +7,18 @@ PlayerFactory::PlayerFactory(QObject *parent)
     connect(server, &Server::allSocketPlayersReady, this, &PlayerFactory::allPlayersReady);
 }
 
-void PlayerFactory::createPlayers(Game &game) {
-    int clientplrs, serverplrs, robotplrs, neuralplrs, randomplrs;
-    std::string input;
-    std::cout << "How many client players (total max: 7, min: 3): ";
-    std::cin >> input;
-    clientplrs = stoi(input);
-    std::cout << "How many robot players  (total max: 7, min: 3): ";
-    std::cin >> input;
-    robotplrs = stoi(input);
-    std::cout << "How many AI players     (total max: 7, min: 3): ";
-    std::cin >> input;
-    neuralplrs = stoi(input);
-    std::cout << "How many server players (total max: 7, min: 3): ";
-    std::cin >> input;
-    serverplrs = stoi(input);
-    std::cout << "How many random players (total max: 7, min: 3): ";
-    std::cin >> input;
-    randomplrs = stoi(input);
+void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
+    int clientplrs = 0, comptrplrs = 0, randomplrs = 0, neuralplrs = 0;
+    if (order.count(PlayerType::client)) clientplrs = order[PlayerType::client];
+    if (order.count(PlayerType::comptr)) comptrplrs = order[PlayerType::comptr];
+    if (order.count(PlayerType::random)) randomplrs = order[PlayerType::random];
+    if (order.count(PlayerType::neural)) neuralplrs = order[PlayerType::neural];
 
-    bool humans_playing = (clientplrs + serverplrs > 0);
+    bool humans_playing = (clientplrs > 0);
 
     std::vector<Player*> players;
-    QString pythonfolder = QDir::currentPath();
 
-    // CLIENT HOSTED PLAYERS:
+    // CLIENT PLAYERS:
     for (int c = 1; c <= clientplrs; c++) {
         SocketPlayer* player = new SocketPlayer();
         game.addPlayer(player);
@@ -40,9 +27,8 @@ void PlayerFactory::createPlayers(Game &game) {
         server->queueSocketPlayerProduction(player);
         // When all socket players are ready tell game that players are ready.
         std::string location = QCoreApplication::applicationDirPath().toStdString() + "\\humanclient.py";
-        std::string command = "start cmd /k python " + location;
+        std::string command = "start python " + location;
         system(command.c_str());
-        // :/scripts/scripts/pyclient/humanclient.py
     }
     for (int c = 1; c <= neuralplrs; c++) {
         SocketPlayer* player = new SocketPlayer();
@@ -56,18 +42,10 @@ void PlayerFactory::createPlayers(Game &game) {
     }
 
     // SERVER HOSTED PLAYERS:
-    for (int c = 1; c <= serverplrs; c++) {
-        HumanPlayer* player = new HumanPlayer();
-        std::string prefix = "human-";
-        player->setName(QString::fromStdString(prefix.append(std::to_string(c))));
-        game.addPlayer(player);
-        players.push_back(player);
-    }
-
     MISettings default_settings;
     if (humans_playing) default_settings.slow_play = true;
 
-    for (int c = 1; c <= robotplrs; c++) {
+    for (int c = 1; c <= comptrplrs; c++) {
         MachinePlayer* player = new MachinePlayer();
         player->setSettings(default_settings);
         std::string prefix = "robo-";

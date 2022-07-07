@@ -8,10 +8,10 @@
 #include "src/game_core/game.h"
 #include "src/networking/server.h"
 #include "src/networking/connection.h"
-#include "humanplayer.h"
 #include "machineplayer.h"
-#include "socketplayer.h"
 #include "randomplayer.h"
+#include "socketplayer.h"
+
 
 class PlayerFactory : public QObject
 {
@@ -19,7 +19,7 @@ class PlayerFactory : public QObject
 public:
     explicit PlayerFactory(QObject *parent = nullptr);
 
-    void createPlayers(Game &game);
+    void createPlayers(std::map<PlayerType, int> order, Game &game);
 
 signals:
     void allPlayersReady();

@@ -1,8 +1,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "src/logic_base/card.h"
-#include "src/logic_base/deck.h"
+#include "src/game_core/card.h"
+#include "src/game_core/deck.h"
 #include <vector>
 
 

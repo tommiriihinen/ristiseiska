@@ -26,7 +26,9 @@ class MachinePlayer: public Player
     Q_OBJECT
 public:
     
-    explicit MachinePlayer(QObject *parent = nullptr);
+    explicit MachinePlayer(QObject *parent = nullptr)
+        : Player(parent)  {}
+
     void setSettings(MISettings s);
 
 public slots:

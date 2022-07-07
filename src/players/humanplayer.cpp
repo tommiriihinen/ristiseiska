@@ -4,88 +4,105 @@
 
 void HumanPlayer::take_action(Player* player, GameAction action) {
 
-    if (player->getName() != this->mName) return;
+    if (this != player) return;
 
-    Card choice;
-    bool continues = false;
-    switch (action) {
-    case play:
-        choice = choosePlay();
+    mActionPending = true;
 
-        if (choice.getSuit() == none) {
+    if (action == play) {
+        mState = play;
+        emit send("PLAY;");
+        emit send("MSG;Your cards: " + mHand.toString());
+        emit send("MSG;Options:" );
+        std::vector<Card> options = findOptions(mHand, *board);
+        if (options.empty()) {
+            emit send("MSG;None");
+        }
+        for (Card option : options) {
+            emit send("MSG;" + option.id());
+        }
+        emit send("MSG;Play card or [P]ass:");
+    }
+    if (action == give) {
+        mState = give;
+        emit send("GIVE;");
+        emit send("MSG;Give a card");
+        emit send("MSG;Your cards: " + mHand.toString());
+    }
+}
+
+
+void HumanPlayer::recieve(QString data) {
+
+    if (mName == "null") {
+        mName = data;
+        emit creationComplete(this);
+        return;
+    }
+
+    if (!mActionPending) {
+        return;
+    }
+
+    if (mState == play) {
+
+        QList<QString> parts = data.split(";");
+        if (parts[0] == "P") {
+
+            if (!canPass(mHand, *board)) {
+                emit send("ERROR;Can't pass when cards fit");
+                return;
+            }
             emit pass_turn();
+            qDebug() << "emit pass";
+            mActionPending = false;
+            emit send("WAIT;");
             return;
         }
-        if (choice.getRank() == ace or choice.getRank() == king) {
-            continues = chooseContinue();
+
+        Card card = Card(parts[0]);
+        if (card.getSuit() == none or card.getRank() == -1) {
+            emit send("ERROR;Not a valid card");
+            return;
         }
-        emit play_card(choice, continues);
-        break;
-
-    case give:
-        choice = chooseGive();
-        emit give_card(choice);
-        break;
-    }
-}
-
-Card HumanPlayer::choosePlay() {
-    std::cout << "Your hand is: ";
-    mHand.print();
-
-    std::vector<Card> options = findOptions(mHand, *board);
-
-    std::cout << "Your options are: ";
-    for (Card card : options) std::cout << card.id().toStdString() << " "; //<< " score: " << scoreCardForPlay(card, hand)
-    std::cout << "\n";
-
-    std::string input;
-    bool reading_input = true;
-    while (reading_input) {
-        std::cout << "Play card or [P]ass: ";
-        std::cin >> input;
-
-        if (input == "P") {
-            return Card(none, -1);
-
-        } else {
-            Card card = QString::fromStdString(input);
-            if (!mHand.contains(card)) {
-                std::cout << input << " is not a card in your hand.\n";
-                continue;
-            }
-            if (!board->canPlay(card)) {
-                std::cout << input << " doesn't fit on the board.\n";
-                continue;
-            }
-            return card;
-        }
-    }
-    return Card(none, -1);
-}
-
-Card HumanPlayer::chooseGive() {
-    Card card;
-    std::cout << "\nYour hand is: ";
-    mHand.print();
-    std::cout << mName.toStdString() << " which card to give to last player: ";
-//    for (Card card : hand.toVector()) {
-//        std::cout << card.id().toStdString() << "\n"; // << " score: " << scoreCardForGive(card, hand, board)
-//    }
-    std::string input;
-    bool reading_input = true;
-    while (reading_input) {
-        std::cin >> input;
-
-        card = QString::fromStdString(input);
         if (!mHand.contains(card)) {
-            std::cout << input << " is not a card in your hand.\n";
-            continue;
+            emit send("ERROR;You don't have this card");
+            return;
         }
+        if (!board->canPlay(card)) {
+            emit send("ERROR;This card doesn't fit the board");
+            return;
+        }
+        bool continues = parts[1] == "1";
+        emit play_card(card, continues);
+        mActionPending = false;
+        emit send("WAIT;");
+        return;
     }
-    return card;
+
+    if (mState == give) {
+
+        Card card = Card(data);
+        if (card.getSuit() == none or card.getRank() == -1) {
+            emit send("ERROR;Not a valid card");
+            return;
+        }
+        if (!mHand.contains(card)) {
+            emit send("ERROR;Can't give what you don't have");
+            return;
+        }
+        emit give_card(card);
+        mActionPending = false;
+        emit send("WAIT;");
+        return;
+    }
 }
 
-bool HumanPlayer::chooseContinue() {
-    return Util::questionPrompt("Will you continue?");
+void HumanPlayer::announcements(QString message) {
+    emit send("MSG;" + message);
+}
+
+void HumanPlayer::whispers(Player* target, QString message) {
+    if (this == dynamic_cast<SocketPlayer*>(target)) {
+        emit send("MSG;" + message);
+    }
 }

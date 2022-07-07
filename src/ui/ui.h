@@ -13,17 +13,17 @@ class UI : public QObject
 {
     Q_OBJECT
 public:
-    UI(QObject* parent = nullptr) {qDebug() << "create UI";}
+    UI(QObject* parent = nullptr) {}
 
     void setGame(Game* game);
-    void setHide(bool hide) {mHide = hide;}
+    void setShow(bool show) {mShow = show;}
 
 public slots:
     void announcements(QString message);
 
 private:
     Game* game;
-    bool mHide { false };
+    bool mShow { false };
 };
 
 #endif // UI_H

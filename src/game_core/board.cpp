@@ -1,9 +1,6 @@
 #include "src/game_core/board.h"
 
-Board::Board()
-{
-    qDebug() << "A board was created.";
-}
+Board::Board() {}
 
 bool Board::canPlay(const Card &card) const {
     return !this->getOptions(card).empty();

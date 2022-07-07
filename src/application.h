@@ -9,6 +9,7 @@
 #include "src/ui/ui.h"
 #include "src/util.h"
 
+enum class AppState {single_game, auto_game, benchmark, menu, player_creation};
 
 struct AppSettings {
 
@@ -29,12 +30,24 @@ public slots:
 signals:
 
 private:
+    void menu();
     void changeSettings();
+    void benchmark();
+
+    void printScores();
+
+    std::map<PlayerType, int> askPlayers();
+    Player* askPlayer();
 
     Game mGame;
     UI mUI;
     PlayerFactory mPlayerFactory;
-    int mGamesLeft = 0;
+    AppState mState { AppState::player_creation };
+    int mGamesLeft { 0 };
+    int mGamesTotal { 0 };
+    Player* benchplayer { nullptr };
+    QString benchmarkData;
+    int benchmarkStep { 0 };
 };
 
 #endif // APPLICATION_H

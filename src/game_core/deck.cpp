@@ -1,8 +1,7 @@
-#include "src/logic_base/deck.h"
+#include "src/game_core/deck.h"
 
 
 void Deck::fill() {
-    qDebug() << "A new deck\n";
     std::vector<Suit> suits{ clubs, diamonds, hearts, spades};
     std::vector<int> ranks{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
     for (Suit suit : suits) {
@@ -65,7 +64,6 @@ Card Deck::topCard() const {
 }
 
 void Deck::put(Card &card, Deck &target_deck) {
-    // qDebug() << "PUT: " << card.id() << "\n";
     if (!this->contains(card)) throw std::invalid_argument( "starting deck doesn't have the card!" );
     if (target_deck.contains(card)) throw std::invalid_argument( "target deck already has the card!" );
 

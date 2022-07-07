@@ -1,7 +1,7 @@
 #include "src/game_core/game.h"
 
 Game::Game(QObject *parent)
-{
+    : mBoard(), mDealer(), mSettings() {
     Deck stariting_deck;
     stariting_deck.fill();
     mDealer.addCards(stariting_deck);
@@ -16,20 +16,52 @@ void Game::addPlayer(Player* player) {
     connect(player, &Player::pass_turn, this, &Game::pass_turn, Qt::QueuedConnection);
     connect(this, &Game::victory, player, &Player::game_ended);
 
-    if (SocketPlayer *sp = dynamic_cast<SocketPlayer*>(player)) {
+    if (SocketPlayer* sp = dynamic_cast<SocketPlayer*>(player)) {
         connect(this, &Game::announce, sp, &SocketPlayer::announcements);
         connect(this, &Game::whisper, sp, &SocketPlayer::whispers);
     }
     player->setBoard(&mBoard);
     mDealer.addDeck(player->getDeck());
-    mSize++;
 }
+bool Game::removePlayer(Player* p) {
+    // doesn't contain
+    if (std::find(players.begin(), players.end(), p) == players.end()) {
+        qDebug() << "SOS";
+        return false;
+    }
+    // remove
+    players.erase(std::remove(players.begin(), players.end(), p), players.end());
+
+    disconnect(this, &Game::take_action, p, &Player::take_action);
+    disconnect(p, &Player::play_card, this, &Game::play_card);
+    disconnect(p, &Player::give_card, this, &Game::give_card);
+    disconnect(p, &Player::pass_turn, this, &Game::pass_turn);
+    disconnect(this, &Game::victory, p, &Player::game_ended);
+
+    if (SocketPlayer* sp = dynamic_cast<SocketPlayer*>(p)) {
+        disconnect(this, &Game::announce, sp, &SocketPlayer::announcements);
+        disconnect(this, &Game::whisper, sp, &SocketPlayer::whispers);
+    }
+    mDealer.removeDeck(p->getDeck());
+    return true;
+}
+
+void Game::clearPlayers() {
+    mDealer.clearDecks();
+    for (Player* p : players) {
+        delete p;
+    }
+    players.clear();
+
+}
+
 
 void Game::setup() {
     mDealer.deal();
 }
 
 void Game::start() {
+
     emit announce("------------------------Instructions:-------------------------\n"
                   "On your turn you may play a card in accordance to the rules of \n"
                   "ristiseiska  or  pass  if and only if you are unable to do so.\n"
@@ -48,7 +80,9 @@ void Game::start() {
 void Game::clean() {
     emit announce("----------------------the seven of clubs----------------------");
     Deck cleaned_cards = mBoard.clean();
+    mDealer.gather();
     mDealer.addCards(cleaned_cards);
+    //qDebug() << mDealer.dealers_deck.toString();
 
     switch (mSettings.seat_change) {
     case SeatChange::static_seats:
@@ -66,14 +100,13 @@ void Game::clean() {
     }
 }
 
-
 void Game::play_card(Card card, bool continues) {
 
     emit announce(current_player->getName()
                   + " played "
                   + card.id()
-                  + " they have "
-                  + (short) current_player->getDeck()->size()
+                  + " and has "
+                  + QString::number(current_player->getDeck()->size())
                   + " cards");
 
     if (continues) {
@@ -114,13 +147,13 @@ void Game::next_turn() {
 
     Player* winner = check_win();
     if (winner != nullptr) {
-        emit announce(current_player->getName() + " has won the game");
+        //emit announce(current_player->getName() + " has won the game");
         emit victory(winner);
 
     } else {
         mTurn++;
         this->last_player = current_player;
-        this->current_player = players[(mTurn-1) % mSize];
+        this->current_player = players[(mTurn-1) % players.size()];
 
         emit announce(current_player->getName() + "'s turn:");
         emit announce(mBoard.toString());
@@ -138,5 +171,6 @@ Player* Game::check_win() {
     }
     return winner;
 }
+
 
 

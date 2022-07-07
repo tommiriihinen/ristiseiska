@@ -12,18 +12,17 @@ SOURCES += main.cpp \
     src/application.cpp \
     src/game_core/board.cpp \
     src/game_core/game.cpp \
-    src/players/humanplayer.cpp \
+    src/game_core/card.cpp \
+    src/game_core/dealer.cpp \
+    src/game_core/deck.cpp \
     src/players/machineplayer.cpp \
     src/players/player.cpp \
     src/players/playerfactory.cpp \
     src/players/randomplayer.cpp \
     src/players/socketplayer.cpp \
-    src/logic_base/card.cpp \
-    src/logic_base/dealer.cpp \
-    src/logic_base/deck.cpp \
     src/networking/server.cpp \
-    src/ui/ui.cpp \
     src/networking/connection.cpp \
+    src/ui/ui.cpp \
     src/util.cpp
 
 
@@ -35,18 +34,17 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += src/application.h \
     src/game_core/board.h \
     src/game_core/game.h \
-    src/players/humanplayer.h \
+    src/game_core/card.h \
+    src/game_core/dealer.h \
+    src/game_core/deck.h \
     src/players/machineplayer.h \
     src/players/player.h \
     src/players/playerfactory.h \
     src/players/randomplayer.h \
     src/players/socketplayer.h \
-    src/logic_base/card.h \
-    src/logic_base/dealer.h \
-    src/logic_base/deck.h \
     src/networking/server.h \
-    src/ui/ui.h \
     src/networking/connection.h \
+    src/ui/ui.h \
     src/util.h
 
 RESOURCES += \

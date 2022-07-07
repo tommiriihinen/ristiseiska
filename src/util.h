@@ -12,6 +12,7 @@ public:
 public:
     static bool questionPrompt(std::string prompt);
     static int numberPrompt(std::string prompt);
+    static char multipleChoicePrompt(std::string prompt);
 };
 
 #endif // UTIL_H

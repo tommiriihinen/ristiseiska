@@ -1,11 +1,12 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "src/logic_base/card.h"
-#include "src/logic_base/deck.h"
+#include "src/game_core/card.h"
+#include "src/game_core/deck.h"
 #include "src/game_core/board.h"
 #include "qstring.h"
 
+enum class PlayerType {client, comptr, random, neural};
 enum GameAction {play, give};
 
 // Responsible for making play-decisions
@@ -17,10 +18,16 @@ public:
 
     void setName(QString name) {mName = name;}
     void setBoard(Board* board) {this->board = board;}
+    void resetStats() {mWins = 0; mGames = 0;}
 
     Deck* getDeck() {return &mHand;}
     QString getName() const {return mName;}
-    double getWinrate() const {return (double) mWins/mgame_core;}
+    double getWinrate() const {return (double) mWins/mGames;}
+
+    template<class T>
+    bool operator==(const T &p) const {
+        return this == dynamic_cast<Player*>(&p);
+    }
 
 signals:
     void play_card(Card card, bool continues);
@@ -37,7 +44,7 @@ protected:
     Deck mHand;
     QString mName { "null" };
     int mWins { 0 };
-    int mgame_core { 0 };
+    int mGames { 0 };
 
 };
 

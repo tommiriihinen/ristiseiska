@@ -2,7 +2,7 @@
 #define GAME_H
 
 #include "src/players/socketplayer.h"
-#include "src/logic_base/dealer.h"
+#include "src/game_core/dealer.h"
 #include "src/game_core/board.h"
 #include "src/players/player.h"
 
@@ -20,6 +20,8 @@ public:
     explicit Game(QObject *parent = nullptr);
 
     void addPlayer(Player* player);
+    bool removePlayer(Player* p);
+    void clearPlayers();
 
     // before game
     void setup();
@@ -28,11 +30,14 @@ public:
     // after game
     void clean();
 
+    void setSettings(GameSettings gs) {mSettings = gs; }
+
     std::vector<Player*> getPlayers() {return this->players;}
     Player* getCurrentPlayer() {return this->current_player;}
     Player* getLastPlayer() {return this->last_player;}
     Board* getBoard() {return &this->mBoard;}
     int getTurn() {return mTurn;}
+    Deck getDealersDeck() {return mDealer.getDeck();}
 
 signals:
     void take_action(Player* player, GameAction action); // players connected ,server ui connected
@@ -47,7 +52,6 @@ public slots:
 
 private:
     int mTurn { 0 };
-    int mSize { 0 };
     Board mBoard;
     Dealer mDealer;
     GameSettings mSettings;

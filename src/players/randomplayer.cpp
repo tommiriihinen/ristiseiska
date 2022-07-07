@@ -3,7 +3,7 @@
 
 void RandomPlayer::take_action(Player* player, GameAction action) {
 
-    if (player->getName() != this->mName) return;
+    if (this != player) return;
 
     Card choice;
     bool continues = false;

@@ -10,7 +10,10 @@ class SocketPlayer : public Player
 {
     Q_OBJECT
 public:
-    explicit SocketPlayer(QObject* parent = nullptr);
+    explicit SocketPlayer(QObject *parent = nullptr)
+        : Player(parent) {
+        qDebug() << "socket created";
+    }
 
 signals:
     void send(QString data);
@@ -18,7 +21,7 @@ signals:
     void announce(QString message);
 
 public slots:
-    void take_action(Player* player, GameAction action) override; // from game
+    void take_action(Player* player, GameAction action); // from game
     void recieve(QString data); // from connection
     void announcements(QString message);
     void whispers(Player* target, QString message);
