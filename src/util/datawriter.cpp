@@ -55,12 +55,9 @@ void DataWriter::newFile() {
 
 void DataWriter::saveFile() {
     mFile->flush();
-    std::cout << "Saved\n";
-    delete mFile;
-    delete mStream;
-    std::cout << "Closed\n";
-    mFile = nullptr;
-    mStream = nullptr;
+    std::cout << "Saved.\n";
+    delete mFile; mFile = nullptr;
+    delete mStream; mStream = nullptr;
     fileOpen = false;
 }
 
@@ -81,7 +78,10 @@ void DataWriter::addMetadata(Benchmark &bm) {
     mFile->unmap(buffer);
 }
 
-void DataWriter::gameStart() {
+void DataWriter::gameStarted() {
+
+    assert(!game->getPlayers().empty());
+    assert(game->getDealersDeck().isEmpty());
 
     for (Player* p : game->getPlayers()) {
         connect(p, &Player::play_card, this, &DataWriter::listenPlay);
@@ -92,20 +92,19 @@ void DataWriter::gameStart() {
     mPlayer_count = 0;
     mPlayerIDs.clear();
 
-    mPlayer_count = game->getPlayers().size();
     // Write number of players to file
+    mPlayer_count = game->getPlayers().size();
     write("/" + QString::number(mPlayer_count) + ";");
 
-    // ID players from 0 to n
+    // ID players and write starting hands on file
     for (Player* p : game->getPlayers()) {
         mPlayerIDs[p] = QString::number(mPlayerIDs.size());
-        // write players hands to file
         write("P" + mPlayerIDs[p] + " " + p->getDeck()->toString(true) + ",");
     }
     write(";");
 }
 
-void DataWriter::gameEnd(Player* winner) {
+void DataWriter::gameEnded(Player* winner) {
     write(";" + mPlayerIDs[winner]);
 
     for (Player* p : game->getPlayers()) {
@@ -117,18 +116,17 @@ void DataWriter::gameEnd(Player* winner) {
 
 void DataWriter::listenPlay(Card card, bool continues) {
     Player* p = game->getCurrentPlayer();
-    write(mPlayerIDs[p] + " " + card.id(true) + ",");
+    write("P " + mPlayerIDs[p] + " " + card.id(true) + ",");
 }
 
 void DataWriter::listenGive(Card card) {
     Player* p = game->getLastPlayer();
     write("G " + mPlayerIDs[p] + " " + card.id(true) + ",");
-
 }
 
 void DataWriter::listenPass() {
-    Player* p = game->getCurrentPlayer();
-    write("P " + mPlayerIDs[p] + ",");
+//    Player* p = game->getCurrentPlayer();
+//    write("S " + mPlayerIDs[p] + ",");
 }
 
 void DataWriter::write(QString data) {

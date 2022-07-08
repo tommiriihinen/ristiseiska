@@ -7,10 +7,11 @@ Application::Application(QObject *parent)
     connect(&mPlayerFactory, &PlayerFactory::allPlayersReady, this, &Application::playersReady);
     // game start
     connect(this, &Application::startGame, &mGame, &Game::start);
-    connect(this, &Application::startGame, &mDataWriter, &DataWriter::gameStart);
+    // game started
+    connect(&mGame, &Game::started, &mDataWriter, &DataWriter::gameStarted);
     // game end
+    connect(&mGame, &Game::victory, &mDataWriter, &DataWriter::gameEnded);
     connect(&mGame, &Game::victory, this, &Application::gameEnded, Qt::QueuedConnection);
-    connect(&mGame, &Game::victory, &mDataWriter, &DataWriter::gameEnd);
     connect(&mGame, &Game::victory, &mBenchmarker, &Benchmarker::gameEnded, Qt::QueuedConnection);
     // benchmarker
     connect(&mBenchmarker, &Benchmarker::benchmarkComplete, this, &Application::benchmarkEnded);
@@ -39,27 +40,30 @@ void Application::gameEnded(Player* winner) {
     mGamesTotal++;
 
     switch (mState) {
-    case AppState::single_game:
-        printScores();
-        menu();
-        break;
 
     case AppState::auto_game:
         mGamesLeft--;
         if (mGamesLeft > 0) {
             std::cout << "Game: " << mGamesTotal << "\n";
             emit startGame();
-
-        } else {
-            printScores();
-            menu();
+            break;
         }
+        // When games ready proceed same as in single game
+    case AppState::single_game:
+        printScores();
+        menu();
         break;
+
+    case AppState::benchmark:
+        break;
+
+    default:
+        assert("gameEnded(): Application bad state");
     }
 }
 
 void Application::benchmarkEnded(Benchmark bm) {
-    mDataWriter.addMetadata(bm);
+    if (mDataWriter.isOpen()) mDataWriter.addMetadata(bm);
     menu();
 }
 
@@ -87,48 +91,53 @@ void Application::menu() {
             mState = AppState::single_game;
             emit startGame();
 
-
         } else if (m == 'M') {
             mState = AppState::auto_game;
-
             mGamesLeft = Util::numberPrompt("How many games to play?");
             emit startGame();
 
-
         } else if (m == 'S') {
-            if (mDataWriter.isOpen()) {
-                std::cout << "Saving...\n";
-                mDataWriter.saveFile();
-            } else {
-                std::cout << "Creating new save file...\n";
-                mDataWriter.newFile();
-            }
+            saving_routine(); // returns
 
         } else if (m == 'C') {
             mState = AppState::player_creation;
             mGame.clearPlayers();
-            mPlayerFactory.createPlayers(askPlayers(), mGame);
+            mPlayerFactory.createPlayers(askPlayers(), mGame); // -> playersReady()
 
         } else if (m == 'B') {
             mState = AppState::benchmark;
-
-            Player* benchplayer = askPlayer();
-            int benchmarkTarget = Util::numberPrompt("How many times to run benchmark?");
-            std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
-
-            mBenchmarker.startBenchmark(benchplayer, benchmarkTarget);
+            benchmark_routine(); // -> start game
 
         } else if (m == 'T') {
-            changeSettings();
+            settings_routine(); // returns
 
         } else if (m == 'Q') {
-
             break;
         }
     }
 }
 
-void Application::changeSettings() {
+void Application::saving_routine() {
+
+    if (!mDataWriter.isOpen()) {
+        std::cout << "Creating new save file...\n";
+        mDataWriter.newFile();
+
+    } else {
+        std::cout << "Saving...\n";
+        mDataWriter.saveFile();
+    }
+}
+
+void Application::benchmark_routine() {
+    Player* benchplayer = askPlayer();
+    int benchmarkTarget = Util::numberPrompt("How many times to run benchmark?");
+    std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
+
+    mBenchmarker.startBenchmark(benchplayer, benchmarkTarget);
+}
+
+void Application::settings_routine() {
     //App settings
     bool browsing_settings = true;
     std::cout << "---------Settings---------\n";

@@ -31,14 +31,15 @@ signals:
 
 public slots:
 
-    void gameStart();
-    void gameEnd(Player* winner);
+    void gameStarted();
+    void gameEnded(Player* winner);
 
     void listenPlay(Card card, bool continues);
     void listenGive(Card card);
     void listenPass();
 
 private:
+    void extractStartingDecks();
     void write(QString line);
 
     QFile* mFile;

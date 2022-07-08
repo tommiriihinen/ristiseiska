@@ -35,8 +35,10 @@ signals:
 
 private:
     void menu();
-    void changeSettings();
-    void benchmark();
+    void saving_routine();
+    void benchmark_routine();
+    void settings_routine();
+
 
     void printScores();
 

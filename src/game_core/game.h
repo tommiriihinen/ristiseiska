@@ -5,6 +5,7 @@
 #include "src/game_core/dealer.h"
 #include "src/game_core/board.h"
 #include "src/players/player.h"
+//#include "src/util/datawriter.h"
 
 enum class SeatChange {static_seats, roundrobin, random};
 
@@ -37,9 +38,11 @@ public:
 signals:
     void take_action(Player* player, GameAction action); // players connected ,server ui connected
     void victory(Player* winner); // players connected, server ui connected
-    //void announce(QString message); // narrates the game on this channel)
+
     void announce(QString message, QString command = "MSG"); // allows for commands
     void whisper(Player* target, QString message, QString command = "MSG"); // messages to only one
+
+    void started();
 
 public slots:
     void play_card(Card card, bool continues);
@@ -52,6 +55,7 @@ private:
     Board mBoard;
     Dealer mDealer;
     GameSettings mSettings;
+    //DataWriter mGameRecorder;
 
     std::vector<Player*> players;
     Player* current_player, * last_player;

@@ -19,14 +19,16 @@ bool Util::questionPrompt(QString prompt) {
 
 
 int Util::numberPrompt(QString prompt) {
-    bool answered = false;
-    while(!answered) {
+    while(true) {
         std::cout << prompt.toStdString() << ": ";
         std::string input;
         std::cin >> input;
-        return stoi(input);
+        try {
+            return stoi(input);
+        } catch (std::exception e) {
+            std::cout << "not a valid number";
+        }
     }
-    return -1;
 }
 
 char Util::multipleChoicePrompt(QString prompt) {

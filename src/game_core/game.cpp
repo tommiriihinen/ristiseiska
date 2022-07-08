@@ -10,7 +10,7 @@ Game::Game(QObject *parent)
 void Game::addPlayer(Player* player) {
     players.push_back(player);
 
-    connect(this, &Game::take_action, player, &Player::take_action);
+    connect(this, &Game::take_action, player, &Player::take_action); //Qt::QueuedConnection
     connect(player, &Player::play_card, this, &Game::play_card, Qt::QueuedConnection);
     connect(player, &Player::give_card, this, &Game::give_card, Qt::QueuedConnection);
     connect(player, &Player::pass_turn, this, &Game::pass_turn, Qt::QueuedConnection);
@@ -75,6 +75,8 @@ void Game::start() {
                   "Example: C7\n"
                   "The turn is passed by typing [P]");
     emit announce("----------------------The Seven of Clubs----------------------");
+
+    emit started();
     next_turn();
 }
 
@@ -102,9 +104,8 @@ void Game::clean() {
 }
 
 void Game::play_card(Card card, bool continues) {
-
     assert(mBoard.canPlay(card));
-    // player wants to play a card
+
     mBoard.playCard(card, *current_player->getDeck());
 
     emit announce(card.id(), "CARD");
@@ -122,6 +123,7 @@ void Game::play_card(Card card, bool continues) {
             and continues) {                                             // wants to continue
         emit announce(current_player->getName() + " will continue");
         emit take_action(current_player, play);
+
     } else {
         next_turn();
     }
@@ -143,6 +145,7 @@ void Game::pass_turn() {
     if (mBoard.isEmpty()) {
         next_turn();
     } else {
+        // Otherwise take a card from the last player
         emit take_action(last_player, give);
     }
 
@@ -151,19 +154,18 @@ void Game::pass_turn() {
 void Game::next_turn() {
 
     Player* winner = check_win();
-    if (winner != nullptr) {
-        clean();
-        emit announce(current_player->getName() + " has won the game");
-        emit victory(winner);
 
-    } else {
+    if (winner == nullptr) {
         mTurn++;
         this->last_player = current_player;
         this->current_player = players[(mTurn-1) % players.size()];
 
         emit announce(current_player->getName() + "'s turn:");
-
         emit take_action(current_player, play);
+    } else {
+        clean();
+        emit announce(current_player->getName() + " has won the game");
+        emit victory(winner);
     }
 }
 
