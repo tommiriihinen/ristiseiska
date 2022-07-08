@@ -116,10 +116,10 @@ void Deck::rankSort() {
     std::sort(this->cards.begin(), this->cards.end());
 }
 
-QString Deck::toString() const {
+QString Deck::toString(bool simple) const {
     QString s;
     for (Card card : this->cards) {
-        s.append(card.id().append(" "));
+        s.append(card.id(simple).append(" "));
     }
     return s;
 }

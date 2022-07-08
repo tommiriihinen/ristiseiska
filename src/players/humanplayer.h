@@ -3,7 +3,7 @@
 
 #include "player.h"
 #include "src/players/socketplayer.h"
-#include "src/util.h"
+#include "src/util/util.h"
 
 
 class HumanPlayer: public SocketPlayer

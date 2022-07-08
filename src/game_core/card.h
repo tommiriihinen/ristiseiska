@@ -23,7 +23,7 @@ public:
     Suit  getSuit() const;
     int getRank() const ;
 
-    QString id() const;
+    QString id(bool simple=false) const;
     void print();
 
     bool operator ==(const Card &c) {

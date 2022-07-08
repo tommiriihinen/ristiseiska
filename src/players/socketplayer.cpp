@@ -10,21 +10,20 @@ void SocketPlayer::take_action(Player* player, GameAction action) {
     if (action == play) {
         mState = play;
         emit send("PLAY;");
-        emit send("MSG;Your cards: " + mHand.toString());
-        emit send("MSG;Options:" );
         std::vector<Card> options = findOptions(mHand, *board);
-        if (options.empty()) {
-            emit send("MSG;None");
-        }
         for (Card option : options) {
-            emit send("MSG;" + option.id());
+            emit send("OPTION;" + option.id());
         }
+        emit send("MSG;Your cards: " + mHand.toString());
         emit send("MSG;Play card or [P]ass:");
     }
     if (action == give) {
         mState = give;
         emit send("GIVE;");
         emit send("MSG;Give a card");
+        for (Card option : mHand.toVector()) {
+            emit send("OPTION;" + option.id());
+        }
         emit send("MSG;Your cards: " + mHand.toString());
     }
 }
@@ -45,14 +44,13 @@ void SocketPlayer::recieve(QString data) {
     if (mState == play) {
 
         QList<QString> parts = data.split(";");
-        if (parts[0] == "P") {
+        if (parts[0] == "P" or parts[0] == "p") {
 
             if (!canPass(mHand, *board)) {
                 emit send("ERROR;Can't pass when cards fit");
                 return;
             }
             emit pass_turn();
-            qDebug() << "emit pass";
             mActionPending = false;
             emit send("WAIT;");
             return;
@@ -96,13 +94,13 @@ void SocketPlayer::recieve(QString data) {
     }
 }
 
-void SocketPlayer::announcements(QString message) {
-    emit send("MSG;" + message);
+void SocketPlayer::announcements(QString message, QString command) {
+    emit send(command + ";" + message);
 }
 
-void SocketPlayer::whispers(Player* target, QString message) {
-    if (this == dynamic_cast<SocketPlayer*>(target)) {
-        emit send("MSG;" + message);
+void SocketPlayer::whispers(Player* target, QString message, QString command) {
+    if (this == target) {
+        emit send(command + ";" + message);
     }
 }
 

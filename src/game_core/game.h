@@ -21,17 +21,12 @@ public:
 
     void addPlayer(Player* player);
     bool removePlayer(Player* p);
+    void addPlayers(std::vector<Player*> players);
     void clearPlayers();
-
-    // before game
-    void setup();
-    // start game
-    void start();
-    // after game
-    void clean();
 
     void setSettings(GameSettings gs) {mSettings = gs; }
 
+    GameSettings getSettings() const {return mSettings;}
     std::vector<Player*> getPlayers() {return this->players;}
     Player* getCurrentPlayer() {return this->current_player;}
     Player* getLastPlayer() {return this->last_player;}
@@ -42,13 +37,15 @@ public:
 signals:
     void take_action(Player* player, GameAction action); // players connected ,server ui connected
     void victory(Player* winner); // players connected, server ui connected
-    void announce(QString message); // narrates the game on this channel)
-    void whisper(Player* target, QString message);
+    //void announce(QString message); // narrates the game on this channel)
+    void announce(QString message, QString command = "MSG"); // allows for commands
+    void whisper(Player* target, QString message, QString command = "MSG"); // messages to only one
 
 public slots:
     void play_card(Card card, bool continues);
     void give_card(Card card);
     void pass_turn();
+    void start();
 
 private:
     int mTurn { 0 };
@@ -59,8 +56,8 @@ private:
     std::vector<Player*> players;
     Player* current_player, * last_player;
 
-
     void next_turn();
+    void clean();
     // returns the player who has won. If no one has, returns nullptr
     Player* check_win();
 };

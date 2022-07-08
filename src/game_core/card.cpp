@@ -5,7 +5,7 @@ Card::Card(QString id) {
     std::string ids = id.toStdString();
     Suit suit = none;
     int rank = -1;
-    switch (ids[0]) {
+    switch (toupper(ids[0])) {
     case 'C':
         suit = clubs;
         break;
@@ -19,7 +19,7 @@ Card::Card(QString id) {
         suit = spades;
     }
 
-    switch (ids[1]) {
+    switch (toupper(ids[1])) {
     case 'A':
         rank = 1;
         break;
@@ -72,21 +72,25 @@ int Card::getRank() const {
     return this->rank;
 }
 
-QString Card::id() const {
+QString Card::id(bool simple) const {
     QString id = "";
 
     switch (this->suit) {
     case clubs:
-        id.append("♣"); // ♣ ♧
+        if (simple) id.append("C");
+        else id.append("♣"); // ♣ ♧
         break;
     case diamonds:
-        id.append("♦"); // ♦ ♢
+        if (simple) id.append("D");
+        else id.append("♦"); // ♦ ♢
         break;
     case hearts:
-        id.append("♥"); // ♥ ♡
+        if (simple) id.append("H");
+        else id.append("♥"); // ♥ ♡
         break;
     case spades:
-        id.append("♠"); // ♠ ♤
+        if (simple) id.append("S");
+        else id.append("♠"); // ♠ ♤
         break;
     }
 

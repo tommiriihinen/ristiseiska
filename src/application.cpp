@@ -1,34 +1,41 @@
 #include "application.h"
 
 Application::Application(QObject *parent)
-    : QObject{parent}
+    : QObject{parent}, mGame(), mUI(), mPlayerFactory(), mDataWriter(), mBenchmarker(&mGame, &mPlayerFactory)
 {
+    // players ready
     connect(&mPlayerFactory, &PlayerFactory::allPlayersReady, this, &Application::playersReady);
+    // game start
+    connect(this, &Application::startGame, &mGame, &Game::start);
+    connect(this, &Application::startGame, &mDataWriter, &DataWriter::gameStart);
+    // game end
     connect(&mGame, &Game::victory, this, &Application::gameEnded, Qt::QueuedConnection);
+    connect(&mGame, &Game::victory, &mDataWriter, &DataWriter::gameEnd);
+    connect(&mGame, &Game::victory, &mBenchmarker, &Benchmarker::gameEnded, Qt::QueuedConnection);
+    // benchmarker
+    connect(&mBenchmarker, &Benchmarker::benchmarkComplete, this, &Application::benchmarkEnded);
+    connect(&mBenchmarker, &Benchmarker::startGame, this, &Application::startGame);
+
     mUI.setGame(&mGame);
+    mDataWriter.connectGame(&mGame);
 }
 
 void Application::start() {
 
+    std::cout << "Ristiseiska Server running on c++14\n";
     mPlayerFactory.createPlayers(askPlayers(), mGame);
 }
 
 void Application::playersReady() {
 
-    switch (mState) {
-    case AppState::player_creation:
+    if (mState == AppState::player_creation) {
         menu();
-        break;
-
-    case AppState::benchmark:
-        mGame.setup();
-        mGame.start();
-        break;
+        return;
     }
+    emit startGame();
 }
 
 void Application::gameEnded(Player* winner) {
-    mGame.clean();
     mGamesTotal++;
 
     switch (mState) {
@@ -41,49 +48,61 @@ void Application::gameEnded(Player* winner) {
         mGamesLeft--;
         if (mGamesLeft > 0) {
             std::cout << "Game: " << mGamesTotal << "\n";
-            mGame.setup();
-            mGame.start();
+            emit startGame();
+
         } else {
             printScores();
             menu();
         }
         break;
-
-    case AppState::benchmark:
-        mGamesLeft--;
-        if (mGamesLeft > 0) {
-            mGame.setup();
-            mGame.start();
-        } else {
-            benchmark();
-        }
-        break;
     }
+}
+
+void Application::benchmarkEnded(Benchmark bm) {
+    mDataWriter.addMetadata(bm);
+    menu();
 }
 
 void Application::menu() {
     mState = AppState::menu;
 
+    QString header          = "---------Game Menu--------\n";
+    QString single_game     = "P: Play a single game\n";
+    QString auto_game       = "M: Play multiple games\n";
+    QString saving          = "S: New save\n";
+    QString change_players  = "C: Change players\n";
+    QString benchmarking    = "B: Benchmark\n";
+    QString change_settings = "T: Change settings\n";
+    QString quitting        = "Q: Quit\n";
+    QString footer          = "--------------------------\n";
+
     while (mState == AppState::menu) {
-        char m = Util::multipleChoicePrompt("---------Game Menu--------\n"
-                                            "P: Play a single game\n"
-                                            "M: Play multiple games\n"
-                                            "C: Change players\n"
-                                            "B: Benchmark\n"
-                                            "S: Change settings\n"
-                                            "Q: Quit\n"
-                                            "--------------------------\n");
+
+        if (mDataWriter.isOpen()) saving = "S: Save file\n";
+
+        char m = Util::multipleChoicePrompt(header + single_game + auto_game + saving +
+                                            change_players + benchmarking + change_settings +
+                                            quitting + footer);
         if (m == 'P') {
             mState = AppState::single_game;
-            mGame.setup();
-            mGame.start();
+            emit startGame();
+
 
         } else if (m == 'M') {
             mState = AppState::auto_game;
 
             mGamesLeft = Util::numberPrompt("How many games to play?");
-            mGame.setup();
-            mGame.start();
+            emit startGame();
+
+
+        } else if (m == 'S') {
+            if (mDataWriter.isOpen()) {
+                std::cout << "Saving...\n";
+                mDataWriter.saveFile();
+            } else {
+                std::cout << "Creating new save file...\n";
+                mDataWriter.newFile();
+            }
 
         } else if (m == 'C') {
             mState = AppState::player_creation;
@@ -93,20 +112,17 @@ void Application::menu() {
         } else if (m == 'B') {
             mState = AppState::benchmark;
 
-            benchplayer = askPlayer();
+            Player* benchplayer = askPlayer();
+            int benchmarkTarget = Util::numberPrompt("How many times to run benchmark?");
             std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
 
-            GameSettings gs;
-            gs.seat_change = SeatChange::random;
-            mGame.setSettings(gs);
+            mBenchmarker.startBenchmark(benchplayer, benchmarkTarget);
 
-            benchmarkStep = 0;
-            benchmark();
-
-        } else if (m == 'S') {
+        } else if (m == 'T') {
             changeSettings();
 
         } else if (m == 'Q') {
+
             break;
         }
     }
@@ -160,53 +176,6 @@ void Application::changeSettings() {
     std::cout << "--------------------------\n";
 }
 
-void Application::benchmark() {
-
-    // Write data
-
-    if (benchmarkStep == 0) {
-        benchmarkData = "Comptr: ";
-
-    } else if (benchmarkStep == 6) {
-        benchmarkData += "Random: ";
-
-    } else if (benchmarkStep == 11) {
-        qDebug() << benchmarkData;
-        menu();
-        return;
-    }
-
-    if (benchmarkStep > 0) {
-        int last_game_players = 3 + ((benchmarkStep - 1) % 5);
-        double relative_score = benchplayer->getWinrate() * last_game_players;
-        qDebug() << benchplayer->getWinrate()*100 << "% score: " << relative_score;
-        QString newline = QString::number(last_game_players) + ": " + QString::number(relative_score, 'f', 6) + ", ";
-        benchmarkData += newline;
-    }
-
-    // Prepare next round
-
-    int opponents = 2 + (benchmarkStep % 5);
-    PlayerType opponent;
-    if (benchmarkStep / 5) opponent = PlayerType::random;
-    else opponent = PlayerType::comptr;
-
-    std::map<PlayerType, int> order;
-    order[opponent] = opponents;
-
-    mGame.removePlayer(benchplayer);
-    mGame.clearPlayers();
-
-    benchplayer->resetStats();
-
-    mGamesLeft = 1000;
-    benchmarkStep++;
-
-    mGame.addPlayer(benchplayer);
-    mPlayerFactory.createPlayers(order, mGame);
-    // After players are ready -> start
-}
-
 void Application::printScores() {
     std::cout << "Game " << mGamesTotal << " scores:\n";
     for (Player* player : mGame.getPlayers()) {
@@ -216,10 +185,19 @@ void Application::printScores() {
 
 std::map<PlayerType, int> Application::askPlayers() {
     std::map<PlayerType, int> order;
-    order[PlayerType::client] = Util::numberPrompt("How many client players (total max: 7, min: 3)");
-    order[PlayerType::comptr] = Util::numberPrompt("How many robot  players (total max: 7, min: 3)");
-    order[PlayerType::random] = Util::numberPrompt("How many random players (total max: 7, min: 3)");
-    order[PlayerType::neural] = Util::numberPrompt("How many neural players (total max: 7, min: 3)");
+
+    bool invalid_input = true;
+    while(invalid_input) {
+        int total = 0;
+        total += order[PlayerType::client] = Util::numberPrompt("How many client players (total max: 7, min: 3)");
+        total += order[PlayerType::comptr] = Util::numberPrompt("How many robot  players (total max: 7, min: 3)");
+        total += order[PlayerType::random] = Util::numberPrompt("How many random players (total max: 7, min: 3)");
+        total += order[PlayerType::neural] = Util::numberPrompt("How many neural players (total max: 7, min: 3)");
+
+        if (total > 7) std::cout << "Cannot have more than 7 players\n";
+        else if (total < 3) std::cout << "Cannot have less than 3 players\n";
+        else invalid_input = false;
+    }
     return order;
 }
 

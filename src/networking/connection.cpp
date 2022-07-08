@@ -8,23 +8,21 @@ Connection::Connection(int ID, QObject *parent) :
 
 void Connection::run()
 {
-
-
-    // make this thread a loop
+    // make thread loop
     exec();
 }
 
 void Connection::readyRead(){
-    QByteArray data = socket->readAll();
-    qDebug() << socketDescriptor << " RECV: " << data;
-    QString refined_data = QString::fromUtf8(data);
-    emit recieved(refined_data);
+    QByteArray utfData = socket->readAll();
+    //qDebug() << socketDescriptor << " RECV: " << data;
+    QString data = QString::fromUtf8(utfData);
+    emit recieved(data);
 }
 
 void Connection::send(QString data) {
-    QByteArray converted_data = data.toUtf8();
-    qDebug() << socketDescriptor << " SENT: " << converted_data;
-    socket->write(converted_data);
+    QByteArray utfData = data.toUtf8();
+    //qDebug() << socketDescriptor << " SENT: " << converted_data;
+    socket->write(utfData + "*");
     socket->flush();
 }
 
@@ -52,4 +50,10 @@ void Connection::createSocket() {
     qDebug() << socketDescriptor << " Client connected";
 
     this->send("NICK;");
+}
+
+void Connection::destroySocket() {
+    socket->disconnect();
+    socket->deleteLater();
+    this->exit();
 }

@@ -7,7 +7,9 @@
 #include "src/players/playerfactory.h"
 #include "src/players/machineplayer.h"
 #include "src/ui/ui.h"
-#include "src/util.h"
+#include "src/util/benchmarker.h"
+#include "src/util/datawriter.h"
+#include "src/util/util.h"
 
 enum class AppState {single_game, auto_game, benchmark, menu, player_creation};
 
@@ -26,8 +28,10 @@ public:
 public slots:
     void playersReady();
     void gameEnded(Player* winner);
+    void benchmarkEnded(Benchmark bm);
 
 signals:
+    void startGame();
 
 private:
     void menu();
@@ -42,12 +46,14 @@ private:
     Game mGame;
     UI mUI;
     PlayerFactory mPlayerFactory;
+    DataWriter mDataWriter;
+    Benchmarker mBenchmarker;
+
     AppState mState { AppState::player_creation };
     int mGamesLeft { 0 };
     int mGamesTotal { 0 };
-    Player* benchplayer { nullptr };
-    QString benchmarkData;
-    int benchmarkStep { 0 };
+
+
 };
 
 #endif // APPLICATION_H

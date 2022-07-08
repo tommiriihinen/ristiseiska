@@ -5,29 +5,32 @@ Util::Util()
 
 }
 
-bool Util::questionPrompt(std::string prompt) {
+bool Util::questionPrompt(QString prompt) {
     bool answered = false;
     while(!answered) {
-        std::cout << prompt << " (y/n): ";
+        std::cout << prompt.toStdString() << " (y/n): ";
         std::string input;
         std::cin >> input;
         if (input == "Y" || input == "y") return true;
         if (input == "N" || input == "n") return false;
     }
+    return false;
 }
 
-int Util::numberPrompt(std::string prompt) {
+
+int Util::numberPrompt(QString prompt) {
     bool answered = false;
     while(!answered) {
-        std::cout << prompt << ": ";
+        std::cout << prompt.toStdString() << ": ";
         std::string input;
         std::cin >> input;
         return stoi(input);
     }
+    return -1;
 }
 
-char Util::multipleChoicePrompt(std::string prompt) {
-    std::cout << prompt;
+char Util::multipleChoicePrompt(QString prompt) {
+    std::cout << prompt.toStdString();
 
     std::string response;
     while (response.size() != 1) {
@@ -37,4 +40,3 @@ char Util::multipleChoicePrompt(std::string prompt) {
     first_letter = toupper(first_letter);
     return first_letter;
 }
-

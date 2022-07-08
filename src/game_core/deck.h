@@ -14,7 +14,7 @@ class Deck
 {
 public:
     Deck() {}
-    Deck(Deck const &d) {this->cards = d.cards; }
+    //Deck(Deck const &d) {this->cards = d.cards; }
     Deck(std::vector<Card> cards) {for (Card card : cards) this->cards.push_back(card);}
 
     bool isEmpty();
@@ -36,7 +36,7 @@ public:
     void suitSort();
     void rankSort();
 
-    QString toString() const;
+    QString toString(bool simple = false) const;
     void print() const;
 
 private:

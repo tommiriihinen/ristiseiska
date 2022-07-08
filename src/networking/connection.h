@@ -20,6 +20,7 @@ public slots:
     void readyRead();
     void disconnected();
     void createSocket();
+    void destroySocket();
     void send(QString data);
 
 private:

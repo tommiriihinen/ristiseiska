@@ -46,6 +46,8 @@ protected:
     int mWins { 0 };
     int mGames { 0 };
 
+public:
+
 };
 
 std::vector<Card> findOptions(Deck &deck, Board &board);

@@ -23,10 +23,11 @@ void Game::addPlayer(Player* player) {
     player->setBoard(&mBoard);
     mDealer.addDeck(player->getDeck());
 }
+
 bool Game::removePlayer(Player* p) {
     // doesn't contain
     if (std::find(players.begin(), players.end(), p) == players.end()) {
-        qDebug() << "SOS";
+        qDebug() << "Player removed twice?";
         return false;
     }
     // remove
@@ -46,21 +47,21 @@ bool Game::removePlayer(Player* p) {
     return true;
 }
 
+void Game::addPlayers(std::vector<Player*> players) {
+    for (Player* p : players) this->addPlayer(p);
+}
+
 void Game::clearPlayers() {
     mDealer.clearDecks();
     for (Player* p : players) {
         delete p;
     }
     players.clear();
-
-}
-
-
-void Game::setup() {
-    mDealer.deal();
 }
 
 void Game::start() {
+
+    mDealer.deal();
 
     emit announce("------------------------Instructions:-------------------------\n"
                   "On your turn you may play a card in accordance to the rules of \n"
@@ -102,6 +103,12 @@ void Game::clean() {
 
 void Game::play_card(Card card, bool continues) {
 
+    assert(mBoard.canPlay(card));
+    // player wants to play a card
+    mBoard.playCard(card, *current_player->getDeck());
+
+    emit announce(card.id(), "CARD");
+    emit announce(mBoard.toString());
     emit announce(current_player->getName()
                   + " played "
                   + card.id()
@@ -109,14 +116,11 @@ void Game::play_card(Card card, bool continues) {
                   + QString::number(current_player->getDeck()->size())
                   + " cards");
 
-    if (continues) {
+    if ((card.getRank() == ace or card.getRank() == king)                // is possible to continue
+            and current_player->getDeck()->size() > 0                    // hand is not empty
+            and !findOptions(*current_player->getDeck(), mBoard).empty() // can play after continuing
+            and continues) {                                             // wants to continue
         emit announce(current_player->getName() + " will continue");
-    }
-
-    // player wants to play a card
-    mBoard.playCard(card, *current_player->getDeck());
-
-    if ((card.getRank() == ace or card.getRank() == king) and continues) {
         emit take_action(current_player, play);
     } else {
         next_turn();
@@ -124,7 +128,8 @@ void Game::play_card(Card card, bool continues) {
 }
 
 void Game::give_card(Card card) {
-    emit announce(current_player->getName() + " took a card form " + last_player->getName());
+    emit announce(current_player->getName() + " took a card from " + last_player->getName());
+    emit announce(card.id(), "CARD");
     emit whisper(current_player, last_player->getName() + " gave you " + card.id());
 
     last_player->getDeck()->put(card, *current_player->getDeck());
@@ -147,7 +152,8 @@ void Game::next_turn() {
 
     Player* winner = check_win();
     if (winner != nullptr) {
-        //emit announce(current_player->getName() + " has won the game");
+        clean();
+        emit announce(current_player->getName() + " has won the game");
         emit victory(winner);
 
     } else {
@@ -156,7 +162,6 @@ void Game::next_turn() {
         this->current_player = players[(mTurn-1) % players.size()];
 
         emit announce(current_player->getName() + "'s turn:");
-        emit announce(mBoard.toString());
 
         emit take_action(current_player, play);
     }

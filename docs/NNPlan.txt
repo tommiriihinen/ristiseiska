@@ -27,14 +27,15 @@ Plan:
 9. Train RNN against itself.
 
 TL;DR
-1. Plan data---------------X
-2. RandomPlayer------------X
-3. Benchmark component-----X
-4. Make Data---------------
-5. Make Neural Network-----
-6. Train it on old data----
-7. Train it against itself-
-8. RNN->-------------------
+1. Plan data----------------X
+2. RandomPlayer-------------X
+3. Benchmark component------X
+4. Saving/Loading component-
+5. Make Data----------------
+6. Make Neural Network------
+7. Train it on old data-----
+8. Train it against itself--
+9. RNN->--------------------
 
 
 RNN DATA REQUIREMENTS: EVERY GAME MOVE
@@ -81,38 +82,27 @@ Date:
 Rnd: 0.3323
 Old: 1.0000
 Start:
+			 +-char					  Inference:
+Game			 |	    Channel:        Training:   NN       RNN:
+P layers-----------+-bool---START;----------Yes---------Yes------Yes
+W inner------------+-bool---END;------------Yes---------No-------No
+Events		 |
+T urn--------------+-bool---TURN;-----------Yes---------No-------Yes
+A ction------------+-bool---PLAY; / GIVE;---All---------Own------All
+H and--------------+-bool---HAND;-----------All---------Own------Own
+B oard-------------+-bool---BOARD;----------Yes---------Yes------Yes
+N number of cards--+-int8---CARDS;----------Yes---------Others---Others
+D ecision----------+-bool---CARD;-----------Output------No-------Yes
 
-Game
-P layers
-W inner
-Events
-T urn
-A ction
-H and
-B oard
-N number of cards
-D ecision
 
-Game
-P:[1,0,0,0,0,0] (Players)
-W:[0,0,0,0,0,0,0,0] (Winner)
-Events
-T:[0,1,0,0,0,0,0,0] (Turn)
-A:[1] (Play or Give)
-H:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Hand)
-B:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Board)
-N:[18] (Number of cards after turn)
-D:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] (Play)
-T:[0,1,0,0,0,0,0,0]
-A:[1]
-H:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-B:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-N:[18]
-D:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-T:[0,1,0,0,0,0,0,0]
-A:[1]
-H:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-B:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-N:[18]
-D:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+
+
+
+Messaging format -> Save format -> Training format
+	 	    C++  	      Python
+
+Messaging format -> Training format
+		   Python
+
 

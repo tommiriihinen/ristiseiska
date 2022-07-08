@@ -1,5 +1,5 @@
-QT -= gui
-QT += network
+QT += network \
+    gui
 
 CONFIG += c++17 console
 CONFIG -= app_bundle
@@ -23,7 +23,9 @@ SOURCES += main.cpp \
     src/networking/server.cpp \
     src/networking/connection.cpp \
     src/ui/ui.cpp \
-    src/util.cpp
+    src/util/benchmarker.cpp \
+    src/util/datawriter.cpp \
+    src/util/util.cpp
 
 
 # Default rules for deployment.
@@ -45,7 +47,9 @@ HEADERS += src/application.h \
     src/networking/server.h \
     src/networking/connection.h \
     src/ui/ui.h \
-    src/util.h
+    src/util/benchmarker.h \
+    src/util/datawriter.h \
+    src/util/util.h
 
 RESOURCES += \
     resource.qrc

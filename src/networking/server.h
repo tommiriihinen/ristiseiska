@@ -15,8 +15,6 @@ public:
 
     void queueSocketPlayerProduction(SocketPlayer* player);
 
-    int getConnections() {return mConnections;}
-
 signals:
     void allSocketPlayersReady();
     void initSocketPlayers();
@@ -28,8 +26,6 @@ protected:
     void incomingConnection(long long socketDescriptor);
 
 private:
-    int mConnections { 0 };
-
     std::vector<SocketPlayer*> mProductionQueue;
     std::vector<SocketPlayer*> mConnectionQueue;
 

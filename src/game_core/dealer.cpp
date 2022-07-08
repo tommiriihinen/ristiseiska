@@ -30,6 +30,10 @@ void Dealer::addCards(std::vector<Card> cards) {
 void Dealer::deal() {
     this->dealers_deck.shuffle();
 
+    // Change who gets the first card
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::shuffle(target_decks.begin(), target_decks.end(), std::default_random_engine(seed));
+
     int turn = 0;
     int n_targets = target_decks.size();
     while (!this->dealers_deck.isEmpty() && n_targets != 0) {
@@ -47,10 +51,6 @@ void Dealer::gather() {
             deck->transfer(this->dealers_deck);
         }
     }
-    // Change who gets the first card
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::shuffle(target_decks.begin(), target_decks.end(), std::default_random_engine(seed));
-
 }
 
 

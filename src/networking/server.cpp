@@ -39,6 +39,7 @@ void Server::incomingConnection(long long socketDescriptor)
     connect(player, &SocketPlayer::creationComplete, this, &Server::socketPlayerReady);
     // Socket deletion
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    connect(player, &SocketPlayer::destroySocket, thread, &Connection::destroySocket);
     // Socket is created by signals and slots so that the socket object lives in the outside thread
     connect(this, &Server::initSocketPlayers, thread, &Connection::createSocket);
 

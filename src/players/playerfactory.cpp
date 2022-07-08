@@ -26,7 +26,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
         server->queueSocketPlayerProduction(player);
         // When all socket players are ready tell game that players are ready.
-        std::string location = QCoreApplication::applicationDirPath().toStdString() + "\\humanclient.py";
+        std::string location = QCoreApplication::applicationDirPath().toStdString() + "\\candyclient.py";
         std::string command = "start python " + location;
         system(command.c_str());
     }
@@ -37,7 +37,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
         server->queueSocketPlayerProduction(player);
         // When all socket players are ready tell game that players are ready.
-        std::string command = "start python \"C:/Users/tommi/Documents/ristiseiska/scripts/pyclient/humanclient.py\""; //"run ";
+        std::string command = "start python \"C:/Users/tommi/Documents/ristiseiska/scripts/pyclient/candyclient.py\""; //"run ";
         system(command.c_str());
     }
 
@@ -48,7 +48,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
     for (int c = 1; c <= comptrplrs; c++) {
         MachinePlayer* player = new MachinePlayer();
         player->setSettings(default_settings);
-        std::string prefix = "robo-";
+        std::string prefix = "goblin-";
         player->setName(QString::fromStdString(prefix.append(std::to_string(c))));
         game.addPlayer(player);
         players.push_back(player);
