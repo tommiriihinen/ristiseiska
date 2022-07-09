@@ -50,7 +50,7 @@ void Benchmarker::gameEnded(Player* winner) {
 
     if (mBenchmarkStep / 5 == 2) {
         // Quit benchmark
-        //revertGameBack();
+        revertGameBack();
         //disconnect(this, &Benchmarker::startGame, game, &Game::start);
         //disconnect(game, &Game::victory, this, &Benchmarker::gameEnded);
         emit benchmarkComplete(mLatestBenchmark);
@@ -70,11 +70,11 @@ void Benchmarker::startBenchmark(Player* player, int benchmarkTarget) {
     mBenchmarkTarget = benchmarkTarget;
     mBenchmarkStep = 0;
 
-//    mOriginalSettings = game->getSettings();
-//    for (Player* p : game->getPlayers()) {
-//        mOriginalPlayers.push_back(p);
-//        game->removePlayer(p);
-//    }
+    mOriginalSettings = game->getSettings();
+    for (Player* p : game->getPlayers()) {
+        mOriginalPlayers.push_back(p);
+        game->removePlayer(p);
+    }
 
     GameSettings gs;
     gs.seat_change = SeatChange::random;
