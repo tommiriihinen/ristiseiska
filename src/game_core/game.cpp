@@ -64,7 +64,7 @@ void Game::start() {
     mDealer.deal();
 
     emit announce("------------------------Instructions:-------------------------\n"
-                  "On your turn you may play a card in accordance to the rules of \n"
+                  "On your turn you may play a card in accordance to the rules of\n"
                   "ristiseiska  or  pass  if and only if you are unable to do so.\n"
                   "\n"
                   "Cards  are  played  by  typing  the first  letter of the suit:\n"

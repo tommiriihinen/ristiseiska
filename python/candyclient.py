@@ -14,7 +14,7 @@ PORT = 1234  # The port used by the server
 print("Ristiseiska Client running on Python 3.10\n")
 
 nickname = input("Choose your nickname: ")
-print("        Your name is: " + nickname + "\n")
+print("Welcome " + nickname + "!\n")
 print("Waiting for the server to start the game")
 
 # Connecting To Server

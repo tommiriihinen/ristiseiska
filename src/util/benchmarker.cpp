@@ -23,6 +23,8 @@ Benchmarker::Benchmarker(Game* g, PlayerFactory* p, QObject *parent)
 
 void Benchmarker::gameEnded(Player* winner) {
 
+    if (mBenchplayer == nullptr) return;
+
     mGamesPlayed++;
     // Play until target reached
     if (mGamesPlayed < mBenchmarkTarget) {
@@ -52,6 +54,7 @@ void Benchmarker::gameEnded(Player* winner) {
         //disconnect(this, &Benchmarker::startGame, game, &Game::start);
         //disconnect(game, &Game::victory, this, &Benchmarker::gameEnded);
         emit benchmarkComplete(mLatestBenchmark);
+        mBenchplayer = nullptr;
         return;
     }
     int opponents = (2 + mBenchmarkStep % 5);
