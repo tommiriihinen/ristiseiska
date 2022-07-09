@@ -130,7 +130,7 @@ def write():
                 continues = '0'
                 if len(choice) == 2:
                     rank = choice[1]
-                    if rank == 'A' or rank == 'K':
+                    if rank.upper() == 'A' or rank.upper() == 'K':
                         if input("Will you continue? (y/n):") == 'y':
                             continues = '1'
 
