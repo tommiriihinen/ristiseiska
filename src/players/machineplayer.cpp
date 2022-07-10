@@ -4,9 +4,9 @@ void MachinePlayer::setSettings(MISettings s) {
     this->mSettings = s;
 }
 
-void MachinePlayer::take_action(Player* player, GameAction action) {
+void MachinePlayer::take_action(IPlayer &player, GameAction action) {
 
-    if (this != player) return;
+    if (this != &player) return;
 
     if (mSettings.slow_play) {
         using namespace std::chrono_literals;

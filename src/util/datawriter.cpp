@@ -66,27 +66,36 @@ void DataWriter::addMetadata(Benchmark &bm) {
     // Now if you are reading this, this is fucking stupid. Normally
     // you would write new stuff to the beginning of a fresh file and
     // then copy the rest over, but, I wanted to see if this works.
-
+    assert(fileOpen);
+    qDebug() << "Wrting metadata";
     QString metadata = bm.toString();
     int end = metadata.length();
-    uchar *buffer = mFile->map(0, end);
 
-    // The following line will edit (both read from and write to)
-    // the file without clearing it first:
-    for (int i=0; i<end; ++i) buffer[i] = metadata[i].toLatin1();
+    mFile->close();
+    if (mFile->open(QIODevice::ReadWrite)) {
+        uchar *buffer = mFile->map(0, end);
+        if (buffer == nullptr) {
+            qDebug() << mFile->error();
+            qDebug() << mFile->errorString();
 
-    mFile->unmap(buffer);
+        }
+        // The following line will edit (both read from and write to)
+        // the file without clearing it first:
+        for (int i=0; i<end; ++i) buffer[i] = metadata[i].toLatin1();
+        mFile->unmap(buffer);
+    } else {
+        std::cout << "Could not add metadata";
+    }
 }
 
 void DataWriter::gameStarted() {
 
-    assert(!game->getPlayers().empty());
-    assert(game->getDealersDeck().isEmpty());
+    assert(game->isRunning());
 
-    for (Player* p : game->getPlayers()) {
-        connect(p, &Player::play_card, this, &DataWriter::listenPlay);
-        connect(p, &Player::give_card, this, &DataWriter::listenGive);
-        connect(p, &Player::pass_turn, this, &DataWriter::listenPass);
+    for (auto p : game->getPlayers()) {
+        connect(p.get(), &IPlayer::play_card, this, &DataWriter::listenPlay);
+        connect(p.get(), &IPlayer::give_card, this, &DataWriter::listenGive);
+        connect(p.get(), &IPlayer::pass_turn, this, &DataWriter::listenPass);
     }
 
     mPlayer_count = 0;
@@ -97,30 +106,30 @@ void DataWriter::gameStarted() {
     write("/" + QString::number(mPlayer_count) + ";");
 
     // ID players and write starting hands on file
-    for (Player* p : game->getPlayers()) {
-        mPlayerIDs[p] = QString::number(mPlayerIDs.size());
-        write("P" + mPlayerIDs[p] + " " + p->getDeck()->toString(true) + ",");
+    for (auto p : game->getPlayers()) {
+        mPlayerIDs[p.get()] = QString::number(mPlayerIDs.size());
+        write("P" + mPlayerIDs[p.get()] + " " + p->getDeck()->toString(true) + ",");
     }
     write(";");
 }
 
-void DataWriter::gameEnded(Player* winner) {
-    write(";" + mPlayerIDs[winner]);
+void DataWriter::gameEnded(IPlayer &winner) {
+    write(";" + mPlayerIDs[&winner]);
 
-    for (Player* p : game->getPlayers()) {
-        disconnect(p, &Player::play_card, this, &DataWriter::listenPlay);
-        disconnect(p, &Player::give_card, this, &DataWriter::listenGive);
-        disconnect(p, &Player::pass_turn, this, &DataWriter::listenPass);
+    for (auto p : game->getPlayers()) {
+        disconnect(p.get(), &IPlayer::play_card, this, &DataWriter::listenPlay);
+        disconnect(p.get(), &IPlayer::give_card, this, &DataWriter::listenGive);
+        disconnect(p.get(), &IPlayer::pass_turn, this, &DataWriter::listenPass);
     }
 }
 
-void DataWriter::listenPlay(Card card, bool continues) {
-    Player* p = game->getCurrentPlayer();
+void DataWriter::listenPlay(const Card card, bool continues) {
+    IPlayer* p = game->getCurrentPlayer().get();
     write("P " + mPlayerIDs[p] + " " + card.id(true) + ",");
 }
 
-void DataWriter::listenGive(Card card) {
-    Player* p = game->getLastPlayer();
+void DataWriter::listenGive(const Card card) {
+    IPlayer* p = game->getLastPlayer().get();
     write("G " + mPlayerIDs[p] + " " + card.id(true) + ",");
 }
 

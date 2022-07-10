@@ -10,34 +10,36 @@ enum class PlayerType {client, comptr, random, neural};
 enum GameAction {play, give};
 
 // Responsible for making play-decisions
-class Player : public QObject
+class IPlayer : public QObject
 {
     Q_OBJECT
 public:
-    Player(QObject *parent = nullptr) {}
+    IPlayer(QObject *parent = nullptr) {}
 
     void setName(QString name) {mName = name;}
-    void setBoard(Board* board) {this->board = board;}
+    void setBoard(Board &board) {this->board = &board;}
     void resetStats() {mWins = 0; mGames = 0;}
 
     Deck* getDeck() {return &mHand;}
     QString getName() const {return mName;}
     double getWinrate() const {return (double) mWins/mGames;}
 
+    virtual bool isListener() const {return false;}
+
     template<class T>
-    bool operator==(const T &p) const {
-        return this == dynamic_cast<Player*>(&p);
+    bool operator==(std::shared_ptr<T> p) const {
+        return this == std::dynamic_pointer_cast<IPlayer>(p);
     }
 
 signals:
-    void play_card(Card card, bool continues);
-    void give_card(Card card);
+    void play_card(const Card card, bool continues);
+    void give_card(const Card card);
     void pass_turn();
 
 public slots:
-    virtual void take_action(Player* player, GameAction action) = 0;
+    virtual void take_action(IPlayer &player, GameAction action) = 0;
     //virtual void turn_switch(Player* current_player);
-    virtual void game_ended(Player* winner);
+    virtual void game_ended(IPlayer &winner);
 
 protected:
     Board* board;
@@ -49,6 +51,8 @@ protected:
 public:
 
 };
+
+typedef std::shared_ptr<IPlayer> pIPlayer;
 
 std::vector<Card> findOptions(Deck &deck, Board &board);
 bool canPass(Deck &deck, Board &board);

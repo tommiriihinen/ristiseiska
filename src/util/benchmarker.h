@@ -17,16 +17,16 @@ class Benchmarker : public QObject
 {
     Q_OBJECT
 public:
-    explicit Benchmarker(Game* game, PlayerFactory* p, QObject *parent = nullptr);
+    explicit Benchmarker(Game &game, PlayerFactory &p, QObject *parent = nullptr);
 
-    void startBenchmark(Player* player, int benchmarkTarget);
+    void startBenchmark(pIPlayer player, int benchmarkTarget);
 
 signals:
     void startGame();
     void benchmarkComplete(Benchmark bm);
 
 public slots:
-    void gameEnded(Player* winner);
+    void gameEnded(IPlayer &winner);
 
 
 private:
@@ -37,14 +37,14 @@ private:
     int mBenchmarkTarget;
     int mGamesPlayed;
 
-    Player* mBenchplayer;
+    pIPlayer mBenchplayer { nullptr };
     Benchmark mLatestBenchmark;
     PlayerType mCurrentOpponent;
 
     Game* game;
     PlayerFactory* pf;
 
-    std::vector<Player*> mOriginalPlayers;
+    std::vector<pIPlayer> mOriginalPlayers;
     GameSettings mOriginalSettings;
 };
 

@@ -15,13 +15,13 @@ QString Benchmark::toString() {
 }
 
 
-Benchmarker::Benchmarker(Game* g, PlayerFactory* p, QObject *parent)
-    : QObject{parent}, game{g}, pf{p}
+Benchmarker::Benchmarker(Game &g, PlayerFactory &p, QObject *parent)
+    : QObject{parent}, game{&g}, pf{&p}
 {
 
 }
 
-void Benchmarker::gameEnded(Player* winner) {
+void Benchmarker::gameEnded(IPlayer &winner) {
 
     if (mBenchplayer == nullptr) return;
 
@@ -37,7 +37,7 @@ void Benchmarker::gameEnded(Player* winner) {
     int game_players = 3 + game_index;
     double relative_score = mBenchplayer->getWinrate() * game_players;
 
-    std::cout << game_players << ": " << mBenchplayer->getWinrate()*100 << "% score: " << relative_score << "\n";
+    std::cout << game->getPlayers().size() << ": " << mBenchplayer->getWinrate()*100 << "% score: " << relative_score << "\n";
 
     // Save data
     if (mCurrentOpponent == PlayerType::comptr) mLatestBenchmark.comptrs[game_index] = relative_score;
@@ -53,8 +53,8 @@ void Benchmarker::gameEnded(Player* winner) {
         revertGameBack();
         //disconnect(this, &Benchmarker::startGame, game, &Game::start);
         //disconnect(game, &Game::victory, this, &Benchmarker::gameEnded);
-        emit benchmarkComplete(mLatestBenchmark);
         mBenchplayer = nullptr;
+        emit benchmarkComplete(mLatestBenchmark);
         return;
     }
     int opponents = (2 + mBenchmarkStep % 5);
@@ -62,7 +62,7 @@ void Benchmarker::gameEnded(Player* winner) {
 }
 
 
-void Benchmarker::startBenchmark(Player* player, int benchmarkTarget) {
+void Benchmarker::startBenchmark(pIPlayer player, int benchmarkTarget) {
     //connect(this, &Benchmarker::startGame, game, &Game::start);
     //connect(game, &Game::victory, this, &Benchmarker::gameEnded);
 
@@ -71,10 +71,7 @@ void Benchmarker::startBenchmark(Player* player, int benchmarkTarget) {
     mBenchmarkStep = 0;
 
     mOriginalSettings = game->getSettings();
-    for (Player* p : game->getPlayers()) {
-        mOriginalPlayers.push_back(p);
-        game->removePlayer(p);
-    }
+    mOriginalPlayers = game->getPlayers();
 
     GameSettings gs;
     gs.seat_change = SeatChange::random;

@@ -7,59 +7,60 @@ Game::Game(QObject *parent)
     mDealer.addCards(stariting_deck);
 }
 
-void Game::addPlayer(Player* player) {
-    players.push_back(player);
+void Game::addPlayer(pIPlayer p) {
+    players.push_back(p);
 
-    connect(this, &Game::take_action, player, &Player::take_action); //Qt::QueuedConnection
-    connect(player, &Player::play_card, this, &Game::play_card, Qt::QueuedConnection);
-    connect(player, &Player::give_card, this, &Game::give_card, Qt::QueuedConnection);
-    connect(player, &Player::pass_turn, this, &Game::pass_turn, Qt::QueuedConnection);
-    connect(this, &Game::victory, player, &Player::game_ended);
+    connect(this, &Game::take_action, p.get(), &IPlayer::take_action); //Qt::QueuedConnection
+    connect(p.get(), &IPlayer::play_card, this, &Game::play_card, Qt::QueuedConnection);
+    connect(p.get(), &IPlayer::give_card, this, &Game::give_card, Qt::QueuedConnection);
+    connect(p.get(), &IPlayer::pass_turn, this, &Game::pass_turn, Qt::QueuedConnection);
+    connect(this, &Game::victory, p.get(), &IPlayer::game_ended);
 
-    if (SocketPlayer* sp = dynamic_cast<SocketPlayer*>(player)) {
-        connect(this, &Game::announce, sp, &SocketPlayer::announcements);
-        connect(this, &Game::whisper, sp, &SocketPlayer::whispers);
+    // If the player is SocketPlayer do some exstra connections
+    if (auto sp = std::dynamic_pointer_cast<SocketPlayer>(p)) {
+        connect(this, &Game::announce, sp.get(), &SocketPlayer::announcements);
+        connect(this, &Game::whisper, sp.get(), &SocketPlayer::whispers);
     }
-    player->setBoard(&mBoard);
-    mDealer.addDeck(player->getDeck());
+    p->setBoard(mBoard);
+    mDealer.addDeck(p->getDeck());
 }
 
-bool Game::removePlayer(Player* p) {
+bool Game::removePlayer(pIPlayer p) {
     // doesn't contain
-    if (std::find(players.begin(), players.end(), p) == players.end()) {
-        qDebug() << "Player removed twice?";
-        return false;
-    }
+    assert(std::find(players.begin(), players.end(), p) != players.end());
     // remove
     players.erase(std::remove(players.begin(), players.end(), p), players.end());
 
-    disconnect(this, &Game::take_action, p, &Player::take_action);
-    disconnect(p, &Player::play_card, this, &Game::play_card);
-    disconnect(p, &Player::give_card, this, &Game::give_card);
-    disconnect(p, &Player::pass_turn, this, &Game::pass_turn);
-    disconnect(this, &Game::victory, p, &Player::game_ended);
+    disconnect(this, &Game::take_action, p.get(), &IPlayer::take_action);
+    disconnect(p.get(), &IPlayer::play_card, this, &Game::play_card);
+    disconnect(p.get(), &IPlayer::give_card, this, &Game::give_card);
+    disconnect(p.get(), &IPlayer::pass_turn, this, &Game::pass_turn);
+    disconnect(this, &Game::victory, p.get(), &IPlayer::game_ended);
 
-    if (SocketPlayer* sp = dynamic_cast<SocketPlayer*>(p)) {
-        disconnect(this, &Game::announce, sp, &SocketPlayer::announcements);
-        disconnect(this, &Game::whisper, sp, &SocketPlayer::whispers);
+    if (auto sp = std::dynamic_pointer_cast<SocketPlayer>(p)) {
+        disconnect(this, &Game::announce, sp.get(), &SocketPlayer::announcements);
+        disconnect(this, &Game::whisper, sp.get(), &SocketPlayer::whispers);
     }
     mDealer.removeDeck(p->getDeck());
     return true;
 }
 
-void Game::addPlayers(std::vector<Player*> players) {
-    for (Player* p : players) this->addPlayer(p);
+void Game::addPlayers(std::vector<pIPlayer> new_players) {
+    for (const auto &p : new_players) this->addPlayer(p);
 }
 
 void Game::clearPlayers() {
-    mDealer.clearDecks();
-    for (Player* p : players) {
-        delete p;
+    std::vector<pIPlayer> original = players;
+    for (const auto &p : original) {
+        removePlayer(p);
     }
-    players.clear();
 }
 
 void Game::start() {
+
+    assert(!mRunning);
+    assert(!players.empty());
+    assert(!mDealer.getDeck().isEmpty());
 
     mDealer.deal();
 
@@ -76,12 +77,16 @@ void Game::start() {
                   "The turn is passed by typing [P]");
     emit announce("----------------------The Seven of Clubs----------------------");
 
+    mRunning = true;
     emit started();
     next_turn();
 }
 
 void Game::clean() {
     emit announce("----------------------the seven of clubs----------------------");
+
+    mTurn = 0;
+
     Deck cleaned_cards = mBoard.clean();
     mDealer.gather();
     mDealer.addCards(cleaned_cards);
@@ -103,7 +108,14 @@ void Game::clean() {
     }
 }
 
-void Game::play_card(Card card, bool continues) {
+void Game::stop() {
+    emit announce("Ending game");
+    mRunning = false;
+
+}
+
+
+void Game::play_card(const Card &card, const bool continues) {
     assert(mBoard.canPlay(card));
 
     mBoard.playCard(card, *current_player->getDeck());
@@ -117,22 +129,27 @@ void Game::play_card(Card card, bool continues) {
                   + QString::number(current_player->getDeck()->size())
                   + " cards");
 
-    if ((card.getRank() == ace or card.getRank() == king)                // is possible to continue
-            and current_player->getDeck()->size() > 0                    // hand is not empty
-            and !findOptions(*current_player->getDeck(), mBoard).empty() // can play after continuing
-            and continues) {                                             // wants to continue
-        emit announce(current_player->getName() + " will continue");
-        emit take_action(current_player, play);
+    if (!continues) next_turn();
 
-    } else {
-        next_turn();
+    if (continues) {
+        if ((card.getRank() == ace or card.getRank() == king)                    // is possible to continue
+                and current_player->getDeck()->size() > 0                        // hand is not empty
+                and !findOptions(*current_player->getDeck(), mBoard).empty()) {  // can play afterwards
+            emit announce(current_player->getName() + " will continue");
+            emit take_action(*current_player, play);
+
+        } else {
+            emit whisper(*current_player.get(), "You cannot continue", "ERROR");
+            next_turn();
+        }
     }
+
 }
 
-void Game::give_card(Card card) {
+void Game::give_card(const Card &card) {
     emit announce(current_player->getName() + " took a card from " + last_player->getName());
     emit announce(card.id(), "CARD");
-    emit whisper(current_player, last_player->getName() + " gave you " + card.id());
+    emit whisper(*current_player.get(), last_player->getName() + " gave you " + card.id());
 
     last_player->getDeck()->put(card, *current_player->getDeck());
     next_turn();
@@ -146,14 +163,19 @@ void Game::pass_turn() {
         next_turn();
     } else {
         // Otherwise take a card from the last player
-        emit take_action(last_player, give);
+        emit take_action(*last_player.get(), give);
     }
 
 }
 
 void Game::next_turn() {
 
-    Player* winner = check_win();
+    if (!mRunning) {
+        qDebug() << "Game was stopped from outside";
+        return; // if stop() is called game ends here
+    }
+
+    auto winner = check_win();
 
     if (winner == nullptr) {
         mTurn++;
@@ -161,17 +183,18 @@ void Game::next_turn() {
         this->current_player = players[(mTurn-1) % players.size()];
 
         emit announce(current_player->getName() + "'s turn:");
-        emit take_action(current_player, play);
+        emit take_action(*current_player.get(), play);
     } else {
         clean();
+        mRunning = false;
         emit announce(current_player->getName() + " has won the game");
-        emit victory(winner);
+        emit victory(*winner.get());
     }
 }
 
-Player* Game::check_win() {
-    Player* winner = nullptr;
-    for (Player* player : players) {
+pIPlayer Game::check_win() {
+    pIPlayer winner = nullptr;
+    for (auto player : players) {
         if (player->getDeck()->isEmpty()) {
             winner = player;
         }

@@ -1,9 +1,11 @@
 
 #include "socketplayer.h"
 
-void SocketPlayer::take_action(Player* player, GameAction action) {
+void SocketPlayer::take_action(IPlayer &player, GameAction action) {
 
-    if (this != player) return;
+    if (this != &player) return;
+
+    mHand.suitSort();
 
     mActionPending = true;
 
@@ -33,7 +35,7 @@ void SocketPlayer::recieve(QString data) {
 
     if (mName == "null") {
         mName = data;
-        emit creationComplete(this);
+        emit creationComplete(std::shared_ptr<SocketPlayer>(this));
         return;
     }
 
@@ -98,8 +100,8 @@ void SocketPlayer::announcements(QString message, QString command) {
     emit send(command + ";" + message);
 }
 
-void SocketPlayer::whispers(Player* target, QString message, QString command) {
-    if (this == target) {
+void SocketPlayer::whispers(IPlayer &target, QString message, QString command) {
+    if (this == &target) {
         emit send(command + ";" + message);
     }
 }

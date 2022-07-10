@@ -19,10 +19,10 @@ signals:
     void announce(QString message);
 
 public slots:
-    void take_action(Player* player, GameAction action) override; // from game
+    void take_action(IPlayer &player, GameAction action) override; // from game
     void recieve(QString data); // from connection
     void announcements(QString message);
-    void whispers(Player* target, QString message);
+    void whispers(IPlayer &target, QString message);
 
 private:
     GameAction mState;

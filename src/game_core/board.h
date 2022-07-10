@@ -17,7 +17,7 @@ public:
 
     void print() const;
     bool canPlay(const Card &card) const;
-    void playCard(Card &card, Deck &deck);
+    void playCard(const Card &card, Deck &deck);
     bool isEmpty() const;
 
     // Finds the decks in which the player is allowed to place a specific card

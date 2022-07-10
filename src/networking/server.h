@@ -13,21 +13,21 @@ public:
     explicit Server(QObject *parent = 0);
     void StartServer();
 
-    void queueSocketPlayerProduction(SocketPlayer* player);
+    void queueSocketPlayerProduction(std::shared_ptr<SocketPlayer> player);
 
 signals:
     void allSocketPlayersReady();
     void initSocketPlayers();
 
 public slots:
-    void socketPlayerReady(SocketPlayer *id);
+    void socketPlayerReady(std::shared_ptr<SocketPlayer> id);
 
 protected:
     void incomingConnection(long long socketDescriptor);
 
 private:
-    std::vector<SocketPlayer*> mProductionQueue;
-    std::vector<SocketPlayer*> mConnectionQueue;
+    std::vector<std::shared_ptr<SocketPlayer>> mProductionQueue;
+    std::vector<std::shared_ptr<SocketPlayer>> mConnectionQueue;
 
 };
 

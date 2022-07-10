@@ -1,7 +1,7 @@
 #include "application.h"
 
 Application::Application(QObject *parent)
-    : QObject{parent}, mGame(), mUI(), mPlayerFactory(), mDataWriter(), mBenchmarker(&mGame, &mPlayerFactory)
+    : QObject{parent}, mGame(), mUI(), mPlayerFactory(), mDataWriter(), mBenchmarker(mGame, mPlayerFactory)
 {
     // players ready
     connect(&mPlayerFactory, &PlayerFactory::allPlayersReady, this, &Application::playersReady);
@@ -36,7 +36,7 @@ void Application::playersReady() {
     emit startGame();
 }
 
-void Application::gameEnded(Player* winner) {
+void Application::gameEnded(IPlayer &winner) {
     mGamesTotal++;
 
     switch (mState) {
@@ -130,7 +130,7 @@ void Application::saving_routine() {
 }
 
 void Application::benchmark_routine() {
-    Player* benchplayer = askPlayer();
+    auto benchplayer = askPlayer();
     int benchmarkTarget = Util::numberPrompt("How many times to run benchmark?");
     std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
 
@@ -154,9 +154,8 @@ void Application::settings_routine() {
 
         if (r == 'M') {
             MISettings s = MachinePlayer::askSettings();
-            std::vector<Player*> players = mGame.getPlayers();
-            for (Player* p : players) {
-                if (MachinePlayer* mp = dynamic_cast<MachinePlayer*>(p)) {
+            for (auto p : mGame.getPlayers()) {
+                if (auto mp = std::dynamic_pointer_cast<MachinePlayer>(p)) {
                     mp->setSettings(s);
                 }
             }
@@ -187,7 +186,7 @@ void Application::settings_routine() {
 
 void Application::printScores() {
     std::cout << "Game " << mGamesTotal << " scores:\n";
-    for (Player* player : mGame.getPlayers()) {
+    for (auto player : mGame.getPlayers()) {
         std::cout << player->getName().toStdString() << "'s winrate is: " << player->getWinrate()*100 << "%\n";
     }
 }
@@ -211,19 +210,20 @@ std::map<PlayerType, int> Application::askPlayers() {
 }
 
 
-Player* Application::askPlayer() {
-    Player* choice;
-    std::vector<Player*> players = mGame.getPlayers();
+pIPlayer Application::askPlayer() {
+    pIPlayer choice;
+    auto players = mGame.getPlayers();
 
     std::cout << "Players:\n";
-    for (Player* p : players) std::cout << p->getName().toStdString() << "\n";
+    for (auto p : players) std::cout << p->getName().toStdString() << "\n";
+    std::cout << "Select a player by typing a name:\n";
 
     bool no_player = true;
     while (no_player) {
         std::string input;
         std::cin >> input;
         QString name = QString::fromStdString(input);
-        for (Player* p : players) {
+        for (auto p : players) {
             if (p->getName() == name) {
                 choice = p;
                 no_player = false;

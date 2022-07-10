@@ -1,7 +1,7 @@
 #include "player.h"
 
-void Player::game_ended(Player* winner) {
-    if (this == winner) mWins++;
+void IPlayer::game_ended(IPlayer &winner) {
+    if (this == &winner) mWins++;
     mGames++;
 }
 

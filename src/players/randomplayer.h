@@ -4,15 +4,15 @@
 #include "player.h"
 #include <random>
 
-class RandomPlayer : public Player
+class RandomPlayer : public IPlayer
 {
     Q_OBJECT
 public:
     explicit RandomPlayer(QObject *parent = nullptr)
-        : Player(parent) {}
+        : IPlayer(parent) {}
 
 public slots:
-    void take_action(Player* player, GameAction action) override;
+    void take_action(IPlayer &player, GameAction action) override;
 
 private:
     Card choosePlay();

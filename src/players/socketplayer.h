@@ -6,29 +6,31 @@
 #include <QString>
 
 
-class SocketPlayer : public Player
+class SocketPlayer : public IPlayer
 {
     Q_OBJECT
 public:
     explicit SocketPlayer(QObject *parent = nullptr)
-        : Player(parent) {
+        : IPlayer(parent) {
         qDebug() << "socket created";
     }
     ~SocketPlayer() {
         emit destroySocket();
     }
 
+    bool isListener() const override {return true;}
+
 signals:
     void send(QString data);
-    void creationComplete(SocketPlayer* self);
+    void creationComplete(std::shared_ptr<SocketPlayer> self);
     void destroySocket();
     void announce(QString message);
 
 public slots:
-    void take_action(Player* player, GameAction action); // from game
+    void take_action(IPlayer &player, GameAction action) override; // from game
     void recieve(QString data); // from connection
     void announcements(QString message, QString command);
-    void whispers(Player* target, QString message, QString command);
+    void whispers(IPlayer &target, QString message, QString command);
 
 private:
     GameAction mState;

@@ -20,50 +20,53 @@ class Game : public QObject
 public:
     explicit Game(QObject *parent = nullptr);
 
-    void addPlayer(Player* player);
-    bool removePlayer(Player* p);
-    void addPlayers(std::vector<Player*> players);
+    void addPlayer(pIPlayer player);
+    bool removePlayer(pIPlayer p); // Would use const ref insted, but requires dynamic_casting
+    void addPlayers(std::vector<pIPlayer> players);
     void clearPlayers();
 
     void setSettings(GameSettings gs) {mSettings = gs; }
 
     GameSettings getSettings() const {return mSettings;}
-    std::vector<Player*> getPlayers() {return this->players;}
-    Player* getCurrentPlayer() {return this->current_player;}
-    Player* getLastPlayer() {return this->last_player;}
+    std::vector<pIPlayer> getPlayers() {return this->players;}
+    pIPlayer getCurrentPlayer() {return this->current_player;}
+    pIPlayer getLastPlayer() {return this->last_player;}
     Board* getBoard() {return &this->mBoard;}
     int getTurn() {return mTurn;}
     Deck getDealersDeck() {return mDealer.getDeck();}
+    bool isRunning() {return mRunning;}
 
 signals:
-    void take_action(Player* player, GameAction action); // players connected ,server ui connected
-    void victory(Player* winner); // players connected, server ui connected
+    void take_action(IPlayer &player, GameAction action); // players connected ,server ui connected
+    void victory(IPlayer &winner); // players connected, server ui connected
 
     void announce(QString message, QString command = "MSG"); // allows for commands
-    void whisper(Player* target, QString message, QString command = "MSG"); // messages to only one
+    void whisper(IPlayer &target, QString message, QString command = "MSG"); // messages to only one
 
     void started();
 
 public slots:
-    void play_card(Card card, bool continues);
-    void give_card(Card card);
+    void play_card(const Card &card, const bool continues);
+    void give_card(const Card &card);
     void pass_turn();
     void start();
+    void stop();
 
 private:
+    bool mRunning { false };
     int mTurn { 0 };
+
     Board mBoard;
     Dealer mDealer;
     GameSettings mSettings;
-    //DataWriter mGameRecorder;
 
-    std::vector<Player*> players;
-    Player* current_player, * last_player;
+    std::vector<pIPlayer> players;
+    pIPlayer current_player, last_player;
 
     void next_turn();
     void clean();
     // returns the player who has won. If no one has, returns nullptr
-    Player* check_win();
+    pIPlayer check_win();
 };
 
 #endif // GAME_H
