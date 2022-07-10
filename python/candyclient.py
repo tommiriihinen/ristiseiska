@@ -29,8 +29,9 @@ class State(Enum):
 
 
 state = State.wait
-lastCard = "NOCARD"
+highlightCard = "NULL"
 options = []
+
 
 class Bcolors:
     OKBLUE = '\033[94m'
@@ -57,7 +58,7 @@ def highlight_many(message, words, color=Bcolors.OKCYAN):
 
 # Listening to Server and Sending Nickname
 def receive():
-    global state, lastCard, options
+    global state, highlightCard, options
     while True:
         try:
             # Receive Message From Server
@@ -68,51 +69,56 @@ def receive():
                 message = messages.pop(0);
 
                 parts = message.split(';')
-                command = parts[0]
+                cmd = parts[0]
                 content = parts[1]
 
                 # print("RECV: " + message)
 
-                match command:
-                    case 'PLAY':
-                        state = State.play
-                    case 'GIVE':
-                        state = State.give
-                    case 'WAIT':
-                        state = State.wait
-                        options.clear()
-                    case 'CARDS':
-                        pass
-                    case 'OPTION':
-                        options.append(content)
-                    case 'CARD':
-                        lastCard = content
-                    case 'NICK':
-                        client.send(nickname.encode('UTF-8'))
-                    case 'MSG':
-                        if content.count("turn"):
-                            if content.count("Instructions:"):
-                                pass
-                            else:
-                                content = highlight(content, "", Bcolors.UNDERLINE)
-                                content = highlight(content, "", Bcolors.OKGREEN)
-                        content = highlight(content, lastCard, Bcolors.FAIL)
-                        content = highlight_many(content, options)
-                        print(content)
-                        lastCard = "NULL"
-                    case 'ERROR':
-                        content = highlight(content, "", Bcolors.WARNING)
-                        sys.stdout.write(content + "\n")
-                    case _:
-                        sys.stdout.write(message)
+                if cmd == 'PLAY':
+                    state = State.play
+
+                elif cmd == 'GIVE':
+                    state = State.give
+
+                elif cmd == 'WAIT':
+                    state = State.wait
+                    options.clear()
+
+                elif cmd == 'CARDS':
+                    pass
+
+                elif cmd == 'OPTION':
+                    options.append(content)
+
+                elif cmd == 'CARD':
+                    highlightCard = content
+
+                elif cmd == 'NICK':
+                    client.send(nickname.encode('UTF-8'))
+
+                elif cmd == 'MSG':
+                    if content.count("'s turn"):
+                        content = highlight(content, "", Bcolors.UNDERLINE)
+                        content = highlight(content, "", Bcolors.OKGREEN)
+                    content = highlight(content, highlightCard, Bcolors.FAIL)
+                    content = highlight_many(content, options)
+                    print(content)
+                    highlightCard = "NULL"
+
+                elif cmd == 'ERROR':
+                    content = highlight(content, "", Bcolors.WARNING)
+                    print(content)
+
+                else:
+                    print(message)
 
         except Exception as e:
             try:
-                # Close Connection When Error
-                print("An error occured!")
+                print(e)
                 client.send(str(e).encode('UTF-8'))
+            # Cursed double-except
             except:
-                print("It was connection lost, goodbye!")
+                print("Connection lost. Closing client")
                 client.close()
                 os._exit(1)
 
@@ -124,28 +130,23 @@ def write():
 
         choice = input()
         choice.strip()
-        match state:
-            case State.play:
 
-                continues = '0'
-                if len(choice) == 2:
-                    rank = choice[1]
-                    if rank.upper() == 'A' or rank.upper() == 'K':
-                        if input("Will you continue? (y/n):") == 'y':
-                            continues = '1'
+        if state == State.play:
 
-                elif choice == 'P':
-                    message = 'P'
+            continues = False
+            if len(choice) == 2 and (choice[1].upper() == 'A' or choice[1].upper() == 'K'):
+                if input("Will you continue? (y/n):") == 'y':
+                    continues = True
 
-                message = choice + ';' + continues
+            elif choice == 'P':
+                message = 'P'
 
-            case State.give:
-                message = choice
-            case State.wait:
-                message = choice
-
-        #print("SEND: " + message)
+            message = choice + ';' + str(int(continues))
+        else:
+            message = choice
+        # print("SEND: " + message)
         client.send(message.encode('UTF-8'))
+
 
 # Starting Threads For Listening And Writing
 receive_thread = threading.Thread(target=receive)
