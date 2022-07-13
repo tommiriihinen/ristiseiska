@@ -1,9 +1,9 @@
 #include "randomplayer.h"
 
 
-void RandomPlayer::take_action(IPlayer &player, GameAction action) {
+void RandomPlayer::take_action(Player* player, GameAction action) {
 
-    if (this != &player) return;
+    if (this != player) return;
 
     Card choice;
     bool continues = false;

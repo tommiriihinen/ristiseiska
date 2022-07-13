@@ -32,7 +32,7 @@ signals:
 public slots:
 
     void gameStarted();
-    void gameEnded(IPlayer &winner);
+    void gameEnded(Player* winner);
 
     void listenPlay(Card card, bool continues);
     void listenGive(Card card);
@@ -51,8 +51,8 @@ private:
 
     Game* game;
     int mPlayer_count { 0 };
-    std::map<IPlayer*, QString> mPlayerIDs;
-    std::map<IPlayer*, Deck> mStartingHands;
+    std::map<Player*, QString> mPlayerIDs;
+    std::map<Player*, Deck> mStartingHands;
 };
 
 #endif // DATAWRITER_H

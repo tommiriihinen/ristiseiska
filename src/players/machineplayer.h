@@ -21,18 +21,18 @@ struct MISettings {
     MIWeights weights;
 };
 
-class MachinePlayer: public IPlayer
+class MachinePlayer: public Player
 {
     Q_OBJECT
 public:
     
     explicit MachinePlayer(QObject *parent = nullptr)
-        : IPlayer(parent)  {}
+        : Player(parent)  {}
 
     void setSettings(MISettings s);
 
 public slots:
-    void take_action(IPlayer &player, GameAction action) override;
+    void take_action(Player* player, GameAction action) override;
 
 private:
     Card choosePlay();

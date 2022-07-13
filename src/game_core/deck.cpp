@@ -63,10 +63,9 @@ Card Deck::topCard() const {
     return this->cards.back();
 }
 
-void Deck::put(const Card &card, Deck &target_deck) {
-    //qDebug() << "Put: " << card.id() << " from " << this->toString() << " to " << target_deck.toString();
-    assert(this->contains(card));
-    assert(!target_deck.contains(card));
+void Deck::put(Card &card, Deck &target_deck) {
+    if (!this->contains(card)) throw std::invalid_argument( "starting deck doesn't have the card!" );
+    if (target_deck.contains(card)) throw std::invalid_argument( "target deck already has the card!" );
 
     // remove from this deck
     for (std::vector<Card>::iterator it = this->cards.begin() ; it != this->cards.end(); ++it) {

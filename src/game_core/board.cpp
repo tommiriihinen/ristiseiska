@@ -98,7 +98,7 @@ QString Board::toString() const {
     return QString::fromStdString(string);
 }
 
-void Board::playCard(const Card &card, Deck &deck) {
+void Board::playCard(Card &card, Deck &deck) {
     int rank = card.getRank();
     Suit suit = card.getSuit();
     SuitComponent* sc = mSuitComponents[suit];

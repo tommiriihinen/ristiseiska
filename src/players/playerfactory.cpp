@@ -16,12 +16,13 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
     bool humans_playing = (clientplrs > 0);
 
-    std::vector<IPlayer*> players;
+    std::vector<Player*> players;
 
     // CLIENT PLAYERS:
     for (int c = 1; c <= clientplrs; c++) {
-        std::shared_ptr<SocketPlayer> player (new SocketPlayer);
+        SocketPlayer* player = new SocketPlayer();
         game.addPlayer(player);
+        players.push_back(player);
 
         server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
@@ -30,8 +31,9 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
         system(command.c_str());
     }
     for (int c = 1; c <= neuralplrs; c++) {
-        std::shared_ptr<SocketPlayer> player (new SocketPlayer);
+        SocketPlayer* player = new SocketPlayer();
         game.addPlayer(player);
+        players.push_back(player);
 
         server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
@@ -48,17 +50,19 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
     if (humans_playing) default_settings.slow_play = true;
 
     for (int c = 1; c <= comptrplrs; c++) {
-        std::shared_ptr<MachinePlayer> player (new MachinePlayer);
+        MachinePlayer* player = new MachinePlayer();
         player->setSettings(default_settings);
         std::string prefix = "goblin-";
         player->setName(QString::fromStdString(prefix.append(std::to_string(c))));
         game.addPlayer(player);
+        players.push_back(player);
     }
     for (int c = 1; c <= randomplrs; c++) {
-        std::shared_ptr<RandomPlayer> player (new RandomPlayer);
+        RandomPlayer* player = new RandomPlayer();
         std::string prefix = "random-";
         player->setName(QString::fromStdString(prefix.append(std::to_string(c))));
         game.addPlayer(player);
+        players.push_back(player);
     }
 
     if (clientplrs + neuralplrs == 0) {

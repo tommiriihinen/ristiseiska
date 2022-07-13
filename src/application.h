@@ -27,7 +27,7 @@ public:
 
 public slots:
     void playersReady();
-    void gameEnded(IPlayer &winner);
+    void gameEnded(Player* winner);
     void benchmarkEnded(Benchmark bm);
 
 signals:
@@ -43,7 +43,7 @@ private:
     void printScores();
 
     std::map<PlayerType, int> askPlayers();
-    pIPlayer askPlayer();
+    Player* askPlayer();
 
     Game mGame;
     UI mUI;
