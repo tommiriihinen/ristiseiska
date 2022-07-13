@@ -79,6 +79,15 @@ void Game::start() {
 
     mRunning = true;
     emit started();
+
+    for (const auto &p : players) {
+        emit whisper(*p, QString::number(playerIndex(p)), "ID");
+
+        for (const auto &c : p->getDeck()->toVector()) {
+            //emit whisper(*p, c.id(true), "STARTING_CARDS");
+        }
+    }
+
     next_turn();
 }
 
@@ -120,7 +129,7 @@ void Game::play_card(const Card &card, const bool continues) {
 
     mBoard.playCard(card, *current_player->getDeck());
 
-    emit announce(card.id(), "CARD");
+    emit announce(card.id(), "CARD_PLAYED");
     emit announce(mBoard.toString());
     emit announce(current_player->getName()
                   + " played "
@@ -148,7 +157,7 @@ void Game::play_card(const Card &card, const bool continues) {
 
 void Game::give_card(const Card &card) {
     emit announce(current_player->getName() + " took a card from " + last_player->getName());
-    emit announce(card.id(), "CARD");
+    emit whisper(*current_player.get(), card.id(), "CARD_GIVEN");
     emit whisper(*current_player.get(), last_player->getName() + " gave you " + card.id());
 
     last_player->getDeck()->put(card, *current_player->getDeck());
@@ -183,6 +192,7 @@ void Game::next_turn() {
         this->current_player = players[(mTurn-1) % players.size()];
 
         emit announce(current_player->getName() + "'s turn:");
+        emit announce(QString::number(playerIndex(current_player)), "TURN");
         emit take_action(*current_player.get(), play);
     } else {
         clean();
@@ -202,5 +212,8 @@ pIPlayer Game::check_win() {
     return winner;
 }
 
+int Game::playerIndex(pIPlayer p) {
+    return std::distance(players.begin(), std::find(players.begin(), players.end(), p));
+}
 
 

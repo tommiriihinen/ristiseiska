@@ -14,14 +14,14 @@ void Connection::run()
 
 void Connection::readyRead(){
     QByteArray utfData = socket->readAll();
-    //qDebug() << socketDescriptor << " RECV: " << data;
+    qDebug() << socketDescriptor << " RECV: " << utfData;
     QString data = QString::fromUtf8(utfData);
     emit recieved(data);
 }
 
 void Connection::send(QString data) {
     QByteArray utfData = data.toUtf8();
-    //qDebug() << socketDescriptor << " SENT: " << converted_data;
+    qDebug() << socketDescriptor << " SENT: " << utfData;
     socket->write(utfData + "*");
     socket->flush();
 }

@@ -1,5 +1,3 @@
-# echo-client.py
-
 import socket
 import threading
 import os
@@ -11,7 +9,7 @@ os.system('color')
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
 
-print("Ristiseiska Client running on Python 3.10\n")
+print("Ristiseiska Client running on Python 3.9\n")
 
 nickname = input("Choose your nickname: ")
 print("Welcome " + nickname + "!\n")
@@ -66,13 +64,13 @@ def receive():
             messages = client.recv(1024).decode('UTF-8').split("*")
 
             while len(messages) > 1:
-                message = messages.pop(0);
+                message = messages.pop(0)
 
                 parts = message.split(';')
                 cmd = parts[0]
                 content = parts[1]
 
-                # print("RECV: " + message)
+                print("RECV: " + message)
 
                 if cmd == 'PLAY':
                     state = State.play
@@ -144,7 +142,7 @@ def write():
             message = choice + ';' + str(int(continues))
         else:
             message = choice
-        # print("SEND: " + message)
+        print("SEND: " + message)
         client.send(message.encode('UTF-8'))
 
 

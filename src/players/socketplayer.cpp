@@ -11,22 +11,23 @@ void SocketPlayer::take_action(IPlayer &player, GameAction action) {
 
     if (action == play) {
         mState = play;
-        emit send("PLAY;");
         std::vector<Card> options = findOptions(mHand, *board);
         for (Card option : options) {
             emit send("OPTION;" + option.id());
         }
         emit send("MSG;Your cards: " + mHand.toString());
         emit send("MSG;Play card or [P]ass:");
+        emit send("PLAY;");
     }
     if (action == give) {
         mState = give;
-        emit send("GIVE;");
         emit send("MSG;Give a card");
         for (Card option : mHand.toVector()) {
             emit send("OPTION;" + option.id());
         }
         emit send("MSG;Your cards: " + mHand.toString());
+        emit send("GIVE;");
+
     }
 }
 

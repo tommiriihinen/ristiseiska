@@ -13,7 +13,7 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras import layers
 
-
+DIR = 'data'
 # Helper libraries
 
 print(tf.__version__)
@@ -72,7 +72,7 @@ class Game:  # Series of decision units tied to a single reward
 # parts      [0]        [1]               [2]          [3]
 # game_text: (n players);n*(startingHand,);m*(action,);(winner)
 
-def parse_game(game_text, training_features, training_labels):
+def parse_game(game_text, training_inputs, training_outputs):
     game_parts = game_text.split(";")
     players = int(game_parts[0])
     winner = int(game_parts[3])
@@ -89,58 +89,54 @@ def parse_game(game_text, training_features, training_labels):
             starting_hand[binarize_card_id(card_id)] = 1
         starting_hands.append(starting_hand)
 
-    # Parse Game
+    # starting hands
     running_hands = starting_hands.copy()
+    # empty table
     running_tables = [([0] * 52) for _ in range(7)]
 
+    # start parsing
     turn_data = game_parts[2].split(",")
     for unit in turn_data[:-1]:
         contents = unit.split(" ")
         player = int(contents[1])
-        action = contents[0]
+        action = 1 if (contents[0] == 'P') else 0
         card = binarize_card_id(contents[2])
 
-        turn = Turn()
-        turn.hand = running_hands[player][:]
-        turn.tables = copy.deepcopy(running_tables)
-        if action == 'P':  # 1 = Play, 0 = Give
-            turn.action = 1
-        else:
-            turn.action = 0
+        inputs = [action]
+        inputs += running_hands[player]
+        table_copy = copy.deepcopy(running_tables)
+        inputs += table_copy.pop(0)
+        for table in table_copy:
+            inputs += table
 
-        turn.decision = [0] * 52
-        if winner == player:
-            turn.decision[card] = 1
-        else:
-            turn.decision[card] = -1
+        outputs = [0] * 52
+        outputs[card] = 1 if winner == player else -1
 
-        if action == 'P':
+        training_inputs.append(inputs)
+        training_outputs.append(outputs)
+
+        if action:  # is play
             running_hands[player][card] = 0
             running_tables[player][card] = 1
-        if action == 'G':
+        else:       # is give
             next_player = (player + 1) % players
             running_hands[player][card] = 0
             running_hands[next_player][card] = 1
 
-
-        feature = sum(turn.tables, []) + turn.hand
-        feature.append(turn.action)
-        label = turn.decision
-        training_features.append(np.array(feature))
-        training_labels.append(np.array(label))
-        # print(feature)
-        # print(turn.decision)
+        # hands = sum(sum(x) for x in running_hands)
+        # table = sum(sum(x) for x in running_tables)
+        # print(hands, table, hands + table)
 
 
-directory = 'data'
 
-print("Directory \\" + directory + "\\ contents:")
-for filename in os.scandir(directory):
+
+print("Directory: " + DIR + ", contents:")
+for filename in os.scandir(DIR):
     if filename.is_file():
         print(filename.path)
 filename = input("which file to train from: ")
-savefile = input("What to save the model as: ")
-file = open(directory + "\\" + filename)
+savefile = input("what to save the model as: ")
+file = open(DIR + "\\" + filename)
 data = ""
 for line in file:
     data += line
@@ -162,7 +158,7 @@ print("Parsing complete")
 
 training_features = np.array(training_features)
 training_labels = np.array(training_labels)
-
+print("Training data ready")
 
 def squared_error_masked(y_true, y_pred):
     """ Squared error of elements where y_true is not 0 """
@@ -171,24 +167,27 @@ def squared_error_masked(y_true, y_pred):
                                         y_pred.dtype), axis=-1)
 
 
+def create_model():
+    model = tf.keras.Sequential([
+        tf.keras.layers.InputLayer(input_shape=417),
+        tf.keras.layers.Dense(512, activation='elu'),
+        tf.keras.layers.Dense(256, activation='elu'),
+        tf.keras.layers.Dense(128, activation='elu'),
+        tf.keras.layers.Dense(52, activation='tanh')
+    ])
 
-model = tf.keras.Sequential([
-    tf.keras.layers.InputLayer(input_shape=417),
-    tf.keras.layers.Dense(384, activation='relu'),
-    tf.keras.layers.Dense(384, activation='relu'),
-    tf.keras.layers.Dense(256, activation='relu'),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(52)
-])
+    model.compile(optimizer='adam',
+                  loss=squared_error_masked,
+                  metrics=['accuracy'])
+    print("Model compiled")
+    model.summary()
+    return model
 
 
-model.compile(optimizer='adam',
-              loss=squared_error_masked,
-              metrics=['accuracy'])
+model = create_model()
 
-
-print(training_features, training_features.size, len(training_features), training_features[0].size)
-print(training_labels, training_labels.size, len(training_labels), training_labels[0].size)
+print(training_features.size, len(training_features), training_features[0].size)
+print(training_labels.size, len(training_labels), training_labels[0].size)
 
 checkpoint_path = "model/cp.ckpt"
 checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -205,4 +204,5 @@ model.fit(training_features,
           callbacks=[cp_callback])  # Pass callback to training
 
 model.save("model/" + savefile)
+print("Model saved")
 

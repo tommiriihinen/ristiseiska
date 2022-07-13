@@ -1,95 +1,257 @@
-# import required module
+import socket
+import threading
 import os
 from enum import Enum
 
-directory = 'data'
+from tensorflow.keras import backend as K
+import tensorflow as tf
+from tensorflow import keras
 
-print("Directory \\" + directory + "\\ contents:")
-for filename in os.scandir(directory):
+
+HOST = "127.0.0.1"  # The server's hostname or IP address
+PORT = 1234  # The port used by the server
+DIR = "model/"
+SUB = ""
+
+print("Ristiseiska NN-Client running on Python 3.9 and TensorFlow version: " + tf.version.VERSION + "\n")
+
+nickname = "Mestari Tikku"
+
+print("Directory: " + DIR + ", contents:")
+for filename in os.scandir(DIR):
     if filename.is_file():
         print(filename.path)
-filename = input("which file to train from: ")
+modelfile = input("Which model to use: ")
 
 
-class Turn:
-    handSizes = []  # n * n
-    opponentsHistory = []  # n * [52]
-    ownHand = []  # [52]
-    action = 1  # 1 = Play, 0 Give
-    decision = []  # [52]
+def squared_error_masked(y_true, y_pred):
+    """ Squared error of elements where y_true is not 0 """
+    err = y_pred - (K.cast(y_true, y_pred.dtype) * 1)
+    return K.sum(K.square(err) * K.cast(K.not_equal(y_true, 0),
+                                        y_pred.dtype), axis=-1)
+
+
+custom_objects = {"squared_error_masked": squared_error_masked}
+with keras.utils.custom_object_scope(custom_objects):
+    model = tf.keras.models.load_model(DIR + modelfile + SUB)
+model.summary()
+
+# Connecting To Server
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(('127.0.0.1', 55555))
 
 
 def binarize_card_id(card_id):
     suit = 0
-    match card_id[0]:
-        case 'C':
-            suit = 0
-        case 'D':
-            suit = 1
-        case 'H':
-            suit = 2
-        case 'S':
-            suit = 3
-    match card_id[1]:
-        case 'A':
-            rank = 1
-        case 'X':
-            rank = 10
-        case 'J':
-            rank = 11
-        case 'Q':
-            rank = 12
-        case 'K':
-            rank = 13
-        case _:
-            rank = int(card_id[1])
+    if card_id[0] == 'C':
+        suit = 0
+    elif card_id[0] == 'D':
+        suit = 1
+    elif card_id[0] == 'H':
+        suit = 2
+    elif card_id[0] == 'S':
+        suit = 3
+
+    if card_id[1] == 'A':
+        rank = 1
+    elif card_id[1] == 'X':
+        rank = 10
+    elif card_id[1] == 'J':
+        rank = 11
+    elif card_id[1] == 'Q':
+        rank = 12
+    elif card_id[1] == 'K':
+        rank = 13
+    else:
+        rank = int(card_id[1])
+
     return (suit * 13 + rank) - 1  # 0-51
 
 
-class Game:
-    players = 0  # 3-7
-    winner = 0
-    turns = []
+def de_binarize_card_id(card_id):
+    suit = ' '
+    rem = card_id // 13
+    if rem == 0:
+        suit = 'C'
+    elif rem == 1:
+        suit = 'D'
+    elif rem == 2:
+        suit = 'H'
+    elif rem == 3:
+        suit = 'S'
+
+    rank = ' '
+    mod = card_id % 13
+    if mod == 1:
+        rank = 'A'
+    elif mod == 10:
+        rank = 'X'
+    elif mod == 11:
+        rank = 'J'
+    elif mod == 12:
+        rank = 'Q'
+    elif mod == 13:
+        rank = 'K'
+    else:
+        rank = str(mod)
+
+    return suit + rank  # C-S A-K
 
 
-# parts      [0]        [1]               [2]          [3]
-# game_text: (n players);n*(startingHand,);m*(action,);(winner)
-
-def parse_game(game_text, winner=True):
-    game = Game()
-    game_parts = game_text.split(";")
-    game.players = int(game_parts[0])
-    game.winner = int(game_parts[3])
-
-    # save hands
-    hand_data = game_parts[1].split(",")  # P1 C2 C7 DA ... ,P2 CA C3 D4 ...
-    player_hand_dict = {}
-    for player in range(0, game.players):
-        starting_hand = [False] * 52
-        card_ids = hand_data[player].strip().split(" ")  # P1 C2 C7 DA ...
-        player_id = card_ids.pop(0)  # P[1]
-
-        for card_id in card_ids:
-            starting_hand[binarize_card_id(card_id)] = True
-
-        player_hand_dict[player_id] = starting_hand
-        starting_hands.append(starting_hand)
-
-    for hand in starting_hands:
-        print(hand)
+def normalize_id(id):
+    if id < my_id:
+        return id + 1
+    else:
+        return id
 
 
-file = open(directory + "\\" + filename)
-data = ""
-for line in file:
-    data += line
+class State(Enum):
+    play = 1,
+    give = 2,
+    wait = 3
 
-games = data.split("/")
-metadata = games[0]
 
-print("game[1]:", games[1])
+state = State.wait
+options = []
 
-parse_game(games[1])
+my_id = 0
+current_player_id = 0
+
+tables = (([0] * 52) for _ in range(7))
+hand = [0] * 52
+action = 0
+
+
+# Listening to Server and Sending Nickname
+def receive():
+    global state, options, action, hand, tables, my_id, current_player_id
+    while True:
+        try:
+            # Receive Message From Server
+            # If 'NICK' Send Nickname
+            messages = client.recv(1024).decode('UTF-8').split("*")
+
+            while len(messages) > 1:
+                message = messages.pop(0)
+
+                parts = message.split(';')
+                cmd = parts[0]
+                content = parts[1]
+
+                # print("RECV: " + message)
+
+                if cmd == 'PLAY':
+                    state = State.play
+
+                elif cmd == 'GIVE':
+                    state = State.give
+
+                elif cmd == 'WAIT':
+                    state = State.wait
+                    options = [0]*52
+
+                elif cmd == 'STARTING_CARDS':
+                    hand[binarize_card_id(content)] = 1
+
+                elif cmd == 'CARD_PLAYED':
+                    # Put card on the correct players table
+                    player = normalize_id(current_player_id)
+                    card = binarize_card_id(content)
+                    tables[player][card] = 1
+
+                elif cmd == 'CARD_GIVEN':
+                    # Take card in hand
+                    hand[binarize_card_id(content)] = 1
+
+                elif cmd == 'TURN':
+                    current_player_id = int(content)
+
+                elif cmd == 'ID':
+                    my_id = int(content)
+
+                elif cmd == 'OPTION':
+                    options[binarize_card_id(content)] = 1
+
+                elif cmd == 'NICK':
+                    client.send(nickname.encode('UTF-8'))
+
+                else:
+                    print(message)
+
+        except Exception as e:
+            try:
+                print(e)
+                client.send(str(e).encode('UTF-8'))
+            # Cursed double-except
+            except:
+                print("Connection lost. Closing client")
+                client.close()
+                os._exit(1)
+
+
+# Sending Messages To Server
+def write():
+    global state, action, hand, tables, model
+    waiting = True
+    while True:
+
+        if waiting and (state == State.play or state == State.give):
+
+            # Construct model input
+            model_input = [action]
+            model_input += hand
+            for table in tables:
+                model_input += table
+            # Decide
+            model_output = model.predict(model_input)
+            # be real!
+            realization = []
+            for want, possibility in zip(model_output, options):
+                realization.append(want * possibility)
+                # take best!
+            decision = 0
+            max = 0
+            for i in range(52):
+                if realization[i] > max:
+                    max = realization[i]
+                    decision = i
+
+            # Apply to self
+            hand[decision] = 0
+            if state == State.play:
+                tables[0][decision] = 1
+            # Apply to world
+            card = de_binarize_card_id(decision)
+            print(" CA C2 C3 C4 C5 C6 C7 C8 C9 CX CJ CQ CK DA D2 D3 D4 D5 D6 D7 D8 D9 DX DJ DQ DK HA H2 H3 H4 H5 H6 H7 H8 H9 HX HJ HQ HK SA S2 S3 S4 S5 S6 S7 S8 S9 SX SJ SQ SK")
+            print(model_output)
+            print(realization)
+            print(card)
+            client.send(card.encode('UTF-8'))
+            # Go into dormancy
+            waiting = False
+
+        if not waiting and state.wait:
+            waiting = True
+
+
+# Starting Threads For Listening And Writing
+receive_thread = threading.Thread(target=receive)
+receive_thread.start()
+
+write_thread = threading.Thread(target=write)
+write_thread.start()
+
+
+
+
+"""
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect((HOST, PORT))
+    s.sendall(b"Hello, world")
+    data = s.recv(1024)
+
+print(f"Received {data!r}")
+"""
 
 
 

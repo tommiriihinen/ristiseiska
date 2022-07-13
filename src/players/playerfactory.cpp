@@ -26,7 +26,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
         server->queueSocketPlayerProduction(player);
         // When all socket players are ready tell game that players are ready.
         std::string location = QCoreApplication::applicationDirPath().toStdString() + "\\candyclient.py";
-        std::string command = "start python " + location;
+        std::string command = "start cmd /k python " + location;
         system(command.c_str());
     }
     for (int c = 1; c <= neuralplrs; c++) {
@@ -35,11 +35,15 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
         server->queueSocketPlayerProduction(player);
         // When all socket players are ready tell game that players are ready.
-        std::string command = "start python \"C:/Users/tommi/Documents/ristiseiska/scripts/pyclient/candyclient.py\""; //"run ";
+        std::string location = "cd " + QCoreApplication::applicationDirPath().toStdString() + "\\Python &";
+        std::string conda  = "C:\\ProgramData\\Miniconda3\\Scripts\\activate.bat & conda activate tf &";
+        std::string python = "C:\\ProgramData\\Miniconda3\\python.exe ";
+        std::string script =  + " neuralclient.py";
+        std::string command = "cmd /k " + location + conda + python + script;
         system(command.c_str());
     }
 
-    // SERVER HOSTED PLAYERS:
+    // SERVER HOSTED PLAYERS:c
     MISettings default_settings;
     if (humans_playing) default_settings.slow_play = true;
 

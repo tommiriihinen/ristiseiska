@@ -67,6 +67,8 @@ private:
     void clean();
     // returns the player who has won. If no one has, returns nullptr
     pIPlayer check_win();
+
+    int playerIndex(pIPlayer p);
 };
 
 #endif // GAME_H
