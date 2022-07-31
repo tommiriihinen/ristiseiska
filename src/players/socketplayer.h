@@ -2,7 +2,7 @@
 #define SOCKETPLAYER_H
 
 #include "player.h"
-#include "src/networking/connection.h"
+#include "networking/connection.h"
 #include <QString>
 
 
@@ -12,9 +12,10 @@ class SocketPlayer : public IPlayer
 public:
     explicit SocketPlayer(QObject *parent = nullptr)
         : IPlayer(parent) {
-        qDebug() << "socket created";
+        qDebug() << "Constructing socketplayer";
     }
     ~SocketPlayer() {
+        qDebug() << "Destructing socketplayer";
         emit destroySocket();
     }
 
@@ -22,7 +23,7 @@ public:
 
 signals:
     void send(QString data);
-    void creationComplete(std::shared_ptr<SocketPlayer> self);
+    void creationComplete(SocketPlayer* self); // notify server
     void destroySocket();
     void announce(QString message);
 

@@ -15,8 +15,8 @@ from tensorflow.keras import layers
 
 DIR = 'data'
 # Helper libraries
+print(f"Ristiseiska NeuralTrainer running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
 
-print(tf.__version__)
 print(tf.reduce_sum(tf.random.normal([1000, 1000])))
 
 

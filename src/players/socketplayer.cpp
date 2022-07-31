@@ -34,9 +34,10 @@ void SocketPlayer::take_action(IPlayer &player, GameAction action) {
 
 void SocketPlayer::recieve(QString data) {
 
+    qDebug() << "Socket Recieving";
     if (mName == "null") {
         mName = data;
-        emit creationComplete(std::shared_ptr<SocketPlayer>(this));
+        emit creationComplete(this);
         return;
     }
 
@@ -95,6 +96,7 @@ void SocketPlayer::recieve(QString data) {
         emit send("WAIT;");
         return;
     }
+    qDebug() << "Socket Recieved";
 }
 
 void SocketPlayer::announcements(QString message, QString command) {

@@ -1,4 +1,4 @@
-#include "src/networking/connection.h"
+#include "networking/connection.h"
 
 Connection::Connection(int ID, QObject *parent) :
     QThread(parent)
@@ -14,14 +14,14 @@ void Connection::run()
 
 void Connection::readyRead(){
     QByteArray utfData = socket->readAll();
-    qDebug() << socketDescriptor << " RECV: " << utfData;
+    // qDebug() << socketDescriptor << " RECV: " << utfData;
     QString data = QString::fromUtf8(utfData);
     emit recieved(data);
 }
 
 void Connection::send(QString data) {
     QByteArray utfData = data.toUtf8();
-    qDebug() << socketDescriptor << " SENT: " << utfData;
+    // qDebug() << socketDescriptor << " SENDING: " << utfData;
     socket->write(utfData + "*");
     socket->flush();
 }
@@ -53,6 +53,7 @@ void Connection::createSocket() {
 }
 
 void Connection::destroySocket() {
+    qDebug() << "Destroying socket";
     socket->disconnect();
     socket->deleteLater();
     this->exit();

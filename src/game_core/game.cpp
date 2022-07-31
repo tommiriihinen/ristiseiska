@@ -1,4 +1,4 @@
-#include "src/game_core/game.h"
+#include "game_core/game.h"
 
 Game::Game(QObject *parent)
     : mBoard(), mDealer(), mSettings() {
@@ -195,10 +195,10 @@ void Game::next_turn() {
         emit announce(QString::number(playerIndex(current_player)), "TURN");
         emit take_action(*current_player.get(), play);
     } else {
-        clean();
         mRunning = false;
         emit announce(current_player->getName() + " has won the game");
         emit victory(*winner.get());
+        clean();
     }
 }
 

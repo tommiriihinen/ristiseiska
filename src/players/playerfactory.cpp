@@ -23,7 +23,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
         std::shared_ptr<SocketPlayer> player (new SocketPlayer);
         game.addPlayer(player);
 
-        server->queueSocketPlayerProduction(player);
+        server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
         std::string location = QCoreApplication::applicationDirPath().toStdString() + "\\candyclient.py";
         std::string command = "start cmd /k python " + location;
@@ -33,7 +33,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
         std::shared_ptr<SocketPlayer> player (new SocketPlayer);
         game.addPlayer(player);
 
-        server->queueSocketPlayerProduction(player);
+        server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
         std::string location = "cd " + QCoreApplication::applicationDirPath().toStdString() + "\\Python &";
         std::string conda  = "C:\\ProgramData\\Miniconda3\\Scripts\\activate.bat & conda activate tf &";

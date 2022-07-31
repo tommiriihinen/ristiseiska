@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import sys
 from enum import Enum
 
 from tensorflow.keras import backend as K
@@ -10,14 +11,14 @@ from tensorflow import keras
 
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
-DIR = "model/"
+DIR = "model"
 SUB = ""
 
-print("Ristiseiska NN-Client running on Python 3.9 and TensorFlow version: " + tf.version.VERSION + "\n")
+print(f"Ristiseiska NeuralClient running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
 
 nickname = "Mestari Tikku"
 
-print("Directory: " + DIR + ", contents:")
+print("Directory " + DIR + " contents:")
 for filename in os.scandir(DIR):
     if filename.is_file():
         print(filename.path)

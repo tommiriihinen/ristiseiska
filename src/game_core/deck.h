@@ -7,7 +7,7 @@
 #include <random>
 #include <vector>
 #include "QDebug"
-#include "src/game_core/card.h"
+#include "game_core/card.h"
 
 
 class Deck

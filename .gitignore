@@ -2,3 +2,4 @@ ristiseiska.pro.user
 *.autosave
 python/pyclient
 .idea
+build*
