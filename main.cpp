@@ -1,11 +1,11 @@
 #include <QCoreApplication>
 #include <iostream>
 
-#include "application.h"
-#include "game_core/game.h"
-#include "players/humanplayer.h"
-#include "players/machineplayer.h"
-#include "players/playerfactory.h"
+#include "src/application.h"
+#include "src/game_core/game.h"
+#include "src/players/humanplayer.h"
+#include "src/players/machineplayer.h"
+#include "src/players/playerfactory.h"
 
 
 int HUMAN_PLAYERS = 1;

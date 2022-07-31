@@ -2,8 +2,8 @@
 #define HUMANPLAYER_H
 
 #include "player.h"
-#include "players/socketplayer.h"
-#include "util/util.h"
+#include "src/players/socketplayer.h"
+#include "src/util/util.h"
 
 
 class HumanPlayer: public SocketPlayer

@@ -1,4 +1,4 @@
-#include "game_core/deck.h"
+#include "src/game_core/deck.h"
 
 
 void Deck::fill() {

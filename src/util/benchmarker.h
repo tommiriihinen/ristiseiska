@@ -1,9 +1,9 @@
 #ifndef BENCHMARKER_H
 #define BENCHMARKER_H
 
-#include "game_core/game.h"
-#include "players/player.h"
-#include "players/playerfactory.h"
+#include "src/game_core/game.h"
+#include "src/players/player.h"
+#include "src/players/playerfactory.h"
 #include <QObject>
 
 struct Benchmark {

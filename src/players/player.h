@@ -1,9 +1,9 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "game_core/card.h"
-#include "game_core/deck.h"
-#include "game_core/board.h"
+#include "src/game_core/card.h"
+#include "src/game_core/deck.h"
+#include "src/game_core/board.h"
 #include "qstring.h"
 
 enum class PlayerType {client, comptr, random, neural};

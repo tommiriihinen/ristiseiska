@@ -1,4 +1,4 @@
-#include "ui/ui.h"
+#include "src/ui/ui.h"
 
 void UI::setGame(Game* game) {
     this->game = game;

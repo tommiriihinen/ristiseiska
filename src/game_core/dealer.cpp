@@ -1,4 +1,4 @@
-#include "game_core/dealer.h"
+#include "src/game_core/dealer.h"
 
 Dealer::Dealer()
 {

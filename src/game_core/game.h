@@ -1,11 +1,11 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "players/socketplayer.h"
-#include "game_core/dealer.h"
-#include "game_core/board.h"
-#include "players/player.h"
-//#include "util/datawriter.h"
+#include "src/players/socketplayer.h"
+#include "src/game_core/dealer.h"
+#include "src/game_core/board.h"
+#include "src/players/player.h"
+//#include "src/util/datawriter.h"
 
 enum class SeatChange {static_seats, roundrobin, random};
 

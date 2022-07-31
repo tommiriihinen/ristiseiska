@@ -5,9 +5,9 @@
 #include <QCoreApplication>
 #include <QObject>
 #include <iostream>
-#include "game_core/game.h"
-#include "networking/server.h"
-#include "networking/connection.h"
+#include "src/game_core/game.h"
+#include "src/networking/server.h"
+#include "src/networking/connection.h"
 #include "machineplayer.h"
 #include "randomplayer.h"
 #include "socketplayer.h"

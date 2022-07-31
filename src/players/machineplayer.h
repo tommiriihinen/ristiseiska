@@ -5,7 +5,7 @@
 #include <thread> // std::this_thread::sleep_for
 
 #include "player.h"
-#include "util/util.h"
+#include "src/util/util.h"
 
 struct MIWeights {
     int hand_hole_weight { 1 };
