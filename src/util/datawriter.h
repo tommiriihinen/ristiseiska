@@ -10,9 +10,9 @@
 #include <QTextDocumentWriter>
 #include <iostream>
 #include <fstream>
-#include "src/game_core/game.h"
-#include "src/players/player.h"
-#include "src/util/benchmarker.h"
+#include "game_core/game.h"
+#include "players/player.h"
+#include "util/benchmarker.h"
 
 class DataWriter : public QObject
 {

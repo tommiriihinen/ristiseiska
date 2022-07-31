@@ -23,7 +23,7 @@ Application::Application(QObject *parent)
 
 void Application::start() {
 
-    std::cout << "Ristiseiska Server running on c++14\n";
+    std::cout << "\nRistiseiska Server running on c++14\n";
     mPlayerFactory.createPlayers(askPlayers(), mGame);
 }
 

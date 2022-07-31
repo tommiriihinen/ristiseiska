@@ -2,14 +2,14 @@
 #define APPLICATION_H
 
 #include <QObject>
-#include "src/game_core/game.h"
-#include "src/players/player.h"
-#include "src/players/playerfactory.h"
-#include "src/players/machineplayer.h"
-#include "src/ui/ui.h"
-#include "src/util/benchmarker.h"
-#include "src/util/datawriter.h"
-#include "src/util/util.h"
+#include "game_core/game.h"
+#include "players/player.h"
+#include "players/playerfactory.h"
+#include "players/machineplayer.h"
+#include "ui/ui.h"
+#include "util/benchmarker.h"
+#include "util/datawriter.h"
+#include "util/util.h"
 
 enum class AppState {single_game, auto_game, benchmark, menu, player_creation};
 

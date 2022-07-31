@@ -1,4 +1,4 @@
-#include "src/networking/connection.h"
+#include "networking/connection.h"
 
 Connection::Connection(int ID, QObject *parent) :
     QThread(parent)

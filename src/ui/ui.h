@@ -3,9 +3,9 @@
 
 #include <string>
 #include <iostream>
-#include "src/game_core/game.h"
+#include "game_core/game.h"
 #include "qstring.h"
-#include "src/util/util.h"
+#include "util/util.h"
 
 
 

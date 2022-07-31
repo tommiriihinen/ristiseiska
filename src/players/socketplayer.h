@@ -2,7 +2,7 @@
 #define SOCKETPLAYER_H
 
 #include "player.h"
-#include "src/networking/connection.h"
+#include "networking/connection.h"
 #include <QString>
 
 

@@ -1,4 +1,4 @@
-#include "src/game_core/game.h"
+#include "game_core/game.h"
 
 Game::Game(QObject *parent)
     : mBoard(), mDealer(), mSettings() {
