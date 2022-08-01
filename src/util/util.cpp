@@ -42,3 +42,17 @@ char Util::multipleChoicePrompt(QString prompt) {
     first_letter = toupper(first_letter);
     return first_letter;
 }
+
+PlayerType Util::playerTypePromt(QString prompt) {
+    std::string response;
+    while (true) {
+        std::cout << prompt.toStdString();
+        std::cin >> response;
+        if (response == "goblin") return PlayerType::comptr;
+        if (response == "client") return PlayerType::client;
+        if (response == "neural") return PlayerType::neural;
+        if (response == "random") return PlayerType::random;
+    }
+
+
+}

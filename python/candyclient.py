@@ -90,7 +90,7 @@ def receive():
                     highlightCard = content
 
                 elif cmd == 'NICK':
-                    client.send(nickname.encode('UTF-8'))
+                    send(nickname)
 
                 elif cmd == 'MSG':
                     if content.count("'s turn"):
@@ -111,12 +111,17 @@ def receive():
         except Exception as e:
             try:
                 print(e)
-                client.send(str(e).encode('UTF-8'))
+                send(e)
             # Cursed double-except
             except:
                 print("Connection lost. Closing client")
                 client.close()
                 os._exit(1)
+
+
+def send(message):
+    message += "*"
+    client.send(message.encode('UTF-8'))
 
 
 # Sending Messages To Server
@@ -141,8 +146,9 @@ def write():
             message = choice + ';' + str(int(continues))
         else:
             message = choice
+
         # print("SEND: " + message)
-        client.send(message.encode('UTF-8'))
+        send(message)
 
 
 # Starting Threads For Listening And Writing

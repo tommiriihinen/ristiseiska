@@ -84,7 +84,7 @@ void Game::start() {
         emit whisper(*p, QString::number(playerIndex(p)), "ID");
 
         for (const auto &c : p->getDeck()->toVector()) {
-            //emit whisper(*p, c.id(true), "STARTING_CARDS");
+            emit whisper(*p, c.id(true), "STARTING_CARDS");
         }
     }
 
@@ -196,7 +196,7 @@ void Game::next_turn() {
         emit take_action(*current_player.get(), play);
     } else {
         mRunning = false;
-        emit announce(current_player->getName() + " has won the game");
+        emit announce(winner->getName() + " has won the game");
         emit victory(*winner.get());
         clean();
     }

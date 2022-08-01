@@ -44,7 +44,7 @@ void Application::gameEnded(IPlayer &winner) {
     case AppState::auto_game:
         mGamesLeft--;
         if (mGamesLeft > 0) {
-            std::cout << "Game: " << mGamesTotal << "\n";
+            std::cout << "Games left: " << mGamesLeft << "\n";
             emit startGame();
             break;
         }
@@ -132,9 +132,13 @@ void Application::saving_routine() {
 void Application::benchmark_routine() {
     auto benchplayer = askPlayer();
     int benchmarkTarget = Util::numberPrompt("How many times to run benchmark?");
-    std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
 
-    mBenchmarker.startBenchmark(benchplayer, benchmarkTarget);
+    PlayerType opponents[2];
+    opponents[0] = Util::playerTypePromt("Choose opponent 1:");
+    opponents[1] = Util::playerTypePromt("Choose opponent 2:");
+
+    std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
+    mBenchmarker.startBenchmark(benchplayer, benchmarkTarget, opponents);
 }
 
 void Application::settings_routine() {
@@ -215,20 +219,17 @@ pIPlayer Application::askPlayer() {
     auto players = mGame.getPlayers();
 
     std::cout << "Players:\n";
-    for (auto p : players) std::cout << p->getName().toStdString() << "\n";
-    std::cout << "Select a player by typing a name:\n";
+    for (auto p : players) std::cout << "  " << p->getName().toStdString() << "\n";
 
-    bool no_player = true;
-    while (no_player) {
+    while (true) {
+        std::cout << "Select a player by typing a name:\n";
         std::string input;
         std::cin >> input;
         QString name = QString::fromStdString(input);
         for (auto p : players) {
             if (p->getName() == name) {
-                choice = p;
-                no_player = false;
+                return p;
             }
         }
     }
-    return choice;
 }

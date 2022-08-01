@@ -25,8 +25,9 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
         server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
-        std::string location = QCoreApplication::applicationDirPath().toStdString() + "\\candyclient.py";
-        std::string command = "start cmd /k python " + location;
+        std::string title = "CandyClient";
+        std::string location = QCoreApplication::applicationDirPath().toStdString();
+        std::string command = "start \"" + title + "\" python " + location + "/candyclient.py";
         system(command.c_str());
     }
     for (int c = 1; c <= neuralplrs; c++) {
@@ -35,15 +36,16 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
         server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
-        std::string location = "cd " + QCoreApplication::applicationDirPath().toStdString() + "\\Python &";
-        std::string conda  = "C:\\ProgramData\\Miniconda3\\Scripts\\activate.bat & conda activate tf &";
-        std::string python = "C:\\ProgramData\\Miniconda3\\python.exe ";
-        std::string script =  + " neuralclient.py";
-        std::string command = "cmd /k " + location + conda + python + script;
+        std::string title = "NeuralClient";
+        std::string location = "cd " + QCoreApplication::applicationDirPath().toStdString() + " & ";
+        std::string conda  = "C:/ProgramData/Miniconda3/Scripts/activate.bat & conda activate tf & ";
+        std::string python = "C:/ProgramData/Miniconda3/python.exe -m pdb -c continue "; //
+        std::string script = "neuralclient.py";
+        std::string command = "start \"" + title + "\" cmd /c \"" + location + conda + python + script + "\"";
         system(command.c_str());
     }
 
-    // SERVER HOSTED PLAYERS:c
+    // SERVER HOSTED PLAYERS:
     MISettings default_settings;
     if (humans_playing) default_settings.slow_play = true;
 

@@ -1,5 +1,21 @@
 #include "datawriter.h"
 
+QString MetaData::toString() {
+
+    int total = 0;
+    for (int i = 0; i < 5; i++) total += mGames[i];
+    QString string = QString("# Metadatablock:\n");
+    string += mBenchmark.toString();
+    string += QString("#  Total games: %1 \n").arg(QString::number(total), -10);
+    string += QString("#    3 Players: %1 \n").arg(QString::number(mGames[0]), -10);
+    string += QString("#    4 Players: %1 \n").arg(QString::number(mGames[1]), -10);
+    string += QString("#    5 Players: %1 \n").arg(QString::number(mGames[2]), -10);
+    string += QString("#    6 Players: %1 \n").arg(QString::number(mGames[3]), -10);
+    string += QString("#    7 Players: %1 \n").arg(QString::number(mGames[4]), -10);
+    string += "#\n";
+    return string;
+}
+
 DataWriter::DataWriter(QObject *parent)
     : QObject{parent}
 {
@@ -36,7 +52,7 @@ void DataWriter::newFile() {
     QDir dir(filePath);
     if (dir.mkdir("data")) std::cout << "Created a new data folder\n";
 
-    QString filename = QCoreApplication::applicationDirPath() + "/data/" + formattedTime + ".txt";
+    QString filename = QCoreApplication::applicationDirPath() + "/data/" + formattedTime + ".csv";
 
     mFile = new QFile(filename);
     if (mFile->open(QIODevice::ReadWrite)) {
@@ -49,8 +65,12 @@ void DataWriter::newFile() {
         qDebug() << mFile->errorString();
         std::cout << "Could not create a new save\n";
     }
-    Benchmark placeholder;
-    write(placeholder.toString());
+
+    mMetadata = MetaData();
+    // create pleaceholder for metadata
+    write(mMetadata.toString());
+    // create header
+    write("Player Count,Starting Hands,Actions,Winner");
 }
 
 void DataWriter::saveFile() {
@@ -63,12 +83,10 @@ void DataWriter::saveFile() {
 
 void DataWriter::addMetadata(Benchmark &bm) {
     // Here we overwrite the space we left at the beginning of the file.
-    // Now if you are reading this, this is fucking stupid. Normally
-    // you would write new stuff to the beginning of a fresh file and
-    // then copy the rest over, but, I wanted to see if this works.
     assert(fileOpen);
     qDebug() << "Wrting metadata";
-    QString metadata = bm.toString();
+    mMetadata.mBenchmark = bm;
+    QString metadata = mMetadata.toString();
     int end = metadata.length();
 
     mFile->close();
@@ -92,29 +110,34 @@ void DataWriter::gameStarted() {
 
     assert(game->isRunning());
 
+    // Listen for players actions
     for (auto p : game->getPlayers()) {
         connect(p.get(), &IPlayer::play_card, this, &DataWriter::listenPlay);
         connect(p.get(), &IPlayer::give_card, this, &DataWriter::listenGive);
         connect(p.get(), &IPlayer::pass_turn, this, &DataWriter::listenPass);
     }
 
+    // Write the game separator
+    write("\n");
+
     mPlayer_count = 0;
     mPlayerIDs.clear();
 
     // Write number of players to file
     mPlayer_count = game->getPlayers().size();
-    write("/" + QString::number(mPlayer_count) + ";");
+    write(QString::number(mPlayer_count) + ",");
+    mMetadata.mGames[mPlayer_count-3] += 1;
 
     // ID players and write starting hands on file
     for (auto p : game->getPlayers()) {
         mPlayerIDs[p.get()] = QString::number(mPlayerIDs.size());
-        write("P" + mPlayerIDs[p.get()] + " " + p->getDeck()->toString(true) + ",");
+        write("P" + mPlayerIDs[p.get()] + " " + p->getDeck()->toString(true) + ";");
     }
-    write(";");
+    write(",");
 }
 
 void DataWriter::gameEnded(IPlayer &winner) {
-    write(";" + mPlayerIDs[&winner]);
+    write("," + mPlayerIDs[&winner]);
 
     for (auto p : game->getPlayers()) {
         disconnect(p.get(), &IPlayer::play_card, this, &DataWriter::listenPlay);
@@ -125,12 +148,12 @@ void DataWriter::gameEnded(IPlayer &winner) {
 
 void DataWriter::listenPlay(const Card card, bool continues) {
     IPlayer* p = game->getCurrentPlayer().get();
-    write("P " + mPlayerIDs[p] + " " + card.id(true) + ",");
+    write("P " + mPlayerIDs[p] + " " + card.id(true) + ";");
 }
 
 void DataWriter::listenGive(const Card card) {
     IPlayer* p = game->getLastPlayer().get();
-    write("G " + mPlayerIDs[p] + " " + card.id(true) + ",");
+    write("G " + mPlayerIDs[p] + " " + card.id(true) + ";");
 }
 
 void DataWriter::listenPass() {

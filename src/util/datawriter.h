@@ -14,6 +14,14 @@
 #include "players/player.h"
 #include "util/benchmarker.h"
 
+struct MetaData {
+    Benchmark mBenchmark;
+
+    int mGames[5] = { 0 };
+
+    QString toString();
+};
+
 class DataWriter : public QObject
 {
     Q_OBJECT
@@ -44,8 +52,7 @@ private:
 
     QFile* mFile;
     QTextStream* mStream;
-    QString mMetadata;
-    int mMetadataLength;
+    MetaData mMetadata;
     QString mData;
     bool fileOpen { false };
 

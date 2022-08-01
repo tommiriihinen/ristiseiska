@@ -34,7 +34,6 @@ void SocketPlayer::take_action(IPlayer &player, GameAction action) {
 
 void SocketPlayer::recieve(QString data) {
 
-    qDebug() << "Socket Recieving";
     if (mName == "null") {
         mName = data;
         emit creationComplete(this);
@@ -48,6 +47,7 @@ void SocketPlayer::recieve(QString data) {
     if (mState == play) {
 
         QList<QString> parts = data.split(";");
+
         if (parts[0] == "P" or parts[0] == "p") {
 
             if (!canPass(mHand, *board)) {
@@ -73,6 +73,8 @@ void SocketPlayer::recieve(QString data) {
             emit send("ERROR;This card doesn't fit the board");
             return;
         }
+        assert(parts.size() == 2);
+
         bool continues = parts[1] == "1";
         emit play_card(card, continues);
         mActionPending = false;
@@ -96,7 +98,6 @@ void SocketPlayer::recieve(QString data) {
         emit send("WAIT;");
         return;
     }
-    qDebug() << "Socket Recieved";
 }
 
 void SocketPlayer::announcements(QString message, QString command) {

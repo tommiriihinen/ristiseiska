@@ -3,3 +3,8 @@ ristiseiska.pro.user
 python/pyclient
 .idea
 build*
+data/*
+models/*
+python/data*
+python/models*
+src/users*

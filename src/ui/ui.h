@@ -19,7 +19,7 @@ public:
     void setShow(bool show) {mShow = show;}
 
 public slots:
-    void announcements(QString message);
+    void announcements(QString message, QString cmd);
 
 private:
     Game* game;
