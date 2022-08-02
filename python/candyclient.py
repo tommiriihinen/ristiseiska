@@ -80,13 +80,10 @@ def receive():
                     state = State.wait
                     options.clear()
 
-                elif cmd == 'CARDS':
-                    pass
-
                 elif cmd == 'OPTION':
                     options.append(content)
 
-                elif cmd == 'CARD':
+                elif cmd == 'CARD_PLAYED':
                     highlightCard = content
 
                 elif cmd == 'NICK':
@@ -104,6 +101,15 @@ def receive():
                 elif cmd == 'ERROR':
                     content = highlight(content, "", Bcolors.WARNING)
                     print(content)
+
+                elif cmd == 'CARDS':
+                    pass
+                elif cmd == 'STARTING_CARDS':
+                    pass
+                elif cmd == 'TURN':
+                    pass
+                elif cmd == 'END':
+                    pass
 
                 else:
                     print(message)

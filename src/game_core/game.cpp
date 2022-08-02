@@ -196,9 +196,13 @@ void Game::next_turn() {
         emit take_action(*current_player.get(), play);
     } else {
         mRunning = false;
+        clean();
         emit announce(winner->getName() + " has won the game");
         emit victory(*winner.get());
-        clean();
+        for (auto player : players) {
+            if (player == winner) whisper(*player, "WIN", "END");
+            else whisper(*player, "LOSE", "END");
+        }
     }
 }
 

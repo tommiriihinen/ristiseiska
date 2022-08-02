@@ -137,8 +137,10 @@ void Application::benchmark_routine() {
     opponents[0] = Util::playerTypePromt("Choose opponent 1:");
     opponents[1] = Util::playerTypePromt("Choose opponent 2:");
 
+    int maxOpponents = Util::numberPrompt("Maximum number of players in game (3-7)");
+
     std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
-    mBenchmarker.startBenchmark(benchplayer, benchmarkTarget, opponents);
+    mBenchmarker.startBenchmark(benchplayer, benchmarkTarget, opponents, maxOpponents);
 }
 
 void Application::settings_routine() {

@@ -3,15 +3,14 @@ print("Loading libraries...")
 import os
 import socket
 import sys
-import threading
+import codecs
 
 import numpy as np
 import tensorflow as tf
 import keras
 from keras import backend as K
 
-np.set_printoptions(precision=3, suppress=True)
-# np.set_printoptions(linewidth=1000, precision=3)
+np.set_printoptions(linewidth=80, precision=3)
 
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
@@ -52,8 +51,6 @@ def binarize_card(card_id):
     else:
         rank = int(card_id[1])
     card_index = (suit * 13 + rank) - 1  # 0-51
-    if DEBUG:
-        print(f"binarized: {card_id} to {card_index}")
     return card_index
 
 
@@ -83,8 +80,6 @@ def de_binarize_card(card_index):
         rank = 'K'
     else:
         rank = str(mod)
-    if DEBUG:
-        print(f"debinarized: {card_index} to {suit}{rank}")
     return suit + rank  # C-S A-K
 
 
@@ -106,16 +101,20 @@ action = 0
 # Listening to Server and Sending Nickname
 def receive():
     global options, action, hand, tables, my_id, current_player_id
+    dec = codecs.getincrementaldecoder('utf8')()
+
     while True:
-        messages = client.recv(1024).decode('UTF-8').split("*")
+        received = client.recv(2048)
+        messages = dec.decode(received).split("*")
 
         while len(messages) > 1:
-            message = messages.pop(0)
+            message = messages.pop(0).strip()
 
             parts = message.split(';')
             if len(parts) == 1:
-                print("ERRONEOUS INPUT:", message)
+                print("ERRONEOUS INPUT:", message, ":", received)
                 continue
+
             cmd = parts[0]
             content = parts[1]
 
@@ -135,8 +134,6 @@ def receive():
                 pass
 
             elif cmd == 'STARTING_CARDS':
-                if DEBUG:
-                    print("Starting hand:", hand)
                 hand[binarize_card(content)] = 1
 
             elif cmd == 'CARD_PLAYED':
@@ -173,10 +170,11 @@ def receive():
                 if SHOW_GAME:
                     print(content)
 
+            elif cmd == "END":
+                pass
+
             else:
                 print(message)
-
-
 
 
 def send(message):
@@ -194,32 +192,38 @@ def send(message):
 def decide():
     global action, hand, tables, model
 
+    # Pass of nothing fits
     if np.all(options == 0):
         print("Passing", options)
         return 'P'
+
+    continues = False
 
     # Construct model input
     model_input = np.concatenate((action, hand, tables.flatten()), axis=None)
     size = 1 + 52 + MAX_PLAYERS * 52
     model_input = model_input.reshape((1, size))
+    # print("Model input:\n", model_input)
     # Decide
-    model_output = model.predict(model_input).flatten()
+    model_output = model(model_input)
     if DEBUG:
-        print("Model output:", model_output)
-        print("legend:        CA   C2   C3   C4   C5   C6   C7   C8   C9   CX   CJ   CQ   CK  "
-              " DA D2 D3 D4 D5 D6 D7 D8 D9 DX DJ DQ DK HA H2 H3 H4 H5 H6 H7 H8 H9 HX HJ HQ HK SA S2 S3 S4 S5 S6 S7 S8 S9 SX SJ SQ SK ")
+        print("Model output:\n", model_output)
         print(model_output.dtype)
     # Realize
     # print("Options:", options)
     realization = np.multiply(model_output, options)
     if DEBUG:
-        print("Realization: ", realization)
+        print("Realization:\n", realization)
     realization[realization == 0] = -np.inf
-    # take best!
     decision = np.argmax(realization)
-    if DEBUG:
-        print("Decision", decision)
 
+    # If everything fits, end game. Wasteful here, needs refactoring
+    if np.array_equal(options, hand):
+        for i in np.flatnonzero(options):
+            if de_binarize_card(i)[1] in ['K', 'A']:
+                decision = i
+                continues = True
+                break
 
     # Apply to self
     hand[decision] = 0
@@ -227,8 +231,10 @@ def decide():
         tables[0][decision] = 1
     # Apply to world
     card = de_binarize_card(decision)
+    if DEBUG:
+        print("Decision", card)
 
-    return card + ";0"
+    return card + ";" + str(int(continues))
 
 
 def load_model():

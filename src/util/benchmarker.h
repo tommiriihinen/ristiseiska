@@ -19,7 +19,7 @@ class Benchmarker : public QObject
 public:
     explicit Benchmarker(Game &game, PlayerFactory &p, QObject *parent = nullptr);
 
-    void startBenchmark(pIPlayer player, int benchmarkTarget, PlayerType opponents[2]);
+    void startBenchmark(pIPlayer player, int benchmarkTarget, PlayerType types[2], int max_opponents);
 
 signals:
     void startGame();
@@ -35,6 +35,7 @@ private:
 
     int mBenchmarkStep;
     int mBenchmarkTarget;
+    int mRounds;
     int mGamesPlayed;
 
     pIPlayer mBenchplayer { nullptr };
