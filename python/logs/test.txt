@@ -1,0 +1,66 @@
+Name: test
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ dense (Dense)               (None, 384)               40704     
+                                                                 
+ dropout (Dropout)           (None, 384)               0         
+                                                                 
+ dense_1 (Dense)             (None, 384)               147840    
+                                                                 
+ dropout_1 (Dropout)         (None, 384)               0         
+                                                                 
+ dense_2 (Dense)             (None, 256)               98560     
+                                                                 
+ dropout_2 (Dropout)         (None, 256)               0         
+                                                                 
+ dense_3 (Dense)             (None, 128)               32896     
+                                                                 
+ dropout_3 (Dropout)         (None, 128)               0         
+                                                                 
+ dense_4 (Dense)             (None, 52)                6708      
+                                                                 
+=================================================================
+Total params: 326,708
+Trainable params: 326,708
+Non-trainable params: 0
+_________________________________________________________________
+Datafile: test.csv
+Parameters:
+  Epochs: 50
+  Batch size: 10
+  Validation split: 0.2
+  Learning rate: 0.001
+Time elapsed:
+  Parsing:  00h00m00s
+  Training: 00h00m10s
+Training history:
+  loss:
+    1.4574
+    1.1432
+    0.9171
+    0.8460
+    0.8037
+    0.7831
+  agreeableness:
+    0.0129
+    0.0135
+    0.0055
+    0.0117
+    0.0105
+    0.0209
+  val_loss:
+    1.3534
+    1.2594
+    1.5219
+    1.4412
+    1.4272
+    1.5234
+  val_agreeableness:
+    0.0147
+    0.0098
+    0.0246
+    0.0172
+    0.0147
+    0.0123

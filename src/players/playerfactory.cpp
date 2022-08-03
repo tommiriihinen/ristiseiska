@@ -39,7 +39,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
         std::string title = "NeuralClient";
         std::string location = "cd " + QCoreApplication::applicationDirPath().toStdString() + " & ";
         std::string conda  = "C:/ProgramData/Miniconda3/Scripts/activate.bat & conda activate tf & ";
-        std::string python = "C:/ProgramData/Miniconda3/python.exe  "; //-m pdb -c continue
+        std::string python = "C:/ProgramData/Miniconda3/python.exe -m pdb -c continue "; //
         std::string script = "neuralclient.py";
         std::string command = "start \"" + title + "\" cmd /c \"" + location + conda + python + script + "\"";
         system(command.c_str());

@@ -93,6 +93,7 @@ def normalize_id(id):
 my_id = 0
 current_player_id = 0
 tables = np.zeros((MAX_PLAYERS, 52))
+table = np.zeros(52)
 hand = np.zeros(52)
 options = np.zeros(52)
 action = 0
@@ -100,7 +101,7 @@ action = 0
 
 # Listening to Server and Sending Nickname
 def receive():
-    global options, action, hand, tables, my_id, current_player_id
+    global options, action, hand, tables, table, my_id, current_player_id
     dec = codecs.getincrementaldecoder('utf8')()
 
     while True:
@@ -141,6 +142,7 @@ def receive():
                 player = normalize_id(current_player_id)
                 card = binarize_card(content)
                 tables[player][card] = 1
+                table[card] = 1
 
             elif cmd == 'CARD_GIVEN':
                 # Take card in hand
@@ -155,6 +157,7 @@ def receive():
                 options = np.zeros(52)
                 current_player_id = 0
                 tables = np.zeros((MAX_PLAYERS, 52))
+                table = np.zeros(52)
                 hand = np.zeros(52)
                 action = 0
 
@@ -190,7 +193,7 @@ def send(message):
 
 
 def decide():
-    global action, hand, tables, model
+    global action, hand, table, model
 
     # Pass of nothing fits
     if np.all(options == 0):
@@ -200,9 +203,8 @@ def decide():
     continues = False
 
     # Construct model input
-    model_input = np.concatenate((action, hand, tables.flatten()), axis=None)
-    size = 1 + 52 + MAX_PLAYERS * 52
-    model_input = model_input.reshape((1, size))
+    model_input = np.concatenate((action, hand, table.flatten()), axis=None)
+    model_input = model_input.reshape((1, 105))
     # print("Model input:\n", model_input)
     # Decide
     model_output = model(model_input)
@@ -228,7 +230,7 @@ def decide():
     # Apply to self
     hand[decision] = 0
     if action == 1:  # Card played
-        tables[0][decision] = 1
+        table[decision] = 1
     # Apply to world
     card = de_binarize_card(decision)
     if DEBUG:
@@ -251,6 +253,11 @@ def load_model():
         model_path = DIR + "/" + model_directory
         print("Loading " + model_path)
 
+    def agreeableness(y_true, y_pred):
+        if K.sum(y_true) == 1:
+            return K.argmax(y_true) == K.argmax(y_pred)
+        else:
+            return K.argmin(y_true) == K.argmax(y_pred)
 
     def squared_error_masked(y_true, y_pred):
         """ Squared error of elements where y_true is not 0 """
@@ -258,7 +265,8 @@ def load_model():
         return K.sum(K.square(err) * K.cast(K.not_equal(y_true, 0),
                                             y_pred.dtype), axis=-1)
 
-    custom_objects = {"squared_error_masked": squared_error_masked}
+    custom_objects = {"squared_error_masked": squared_error_masked,
+                      "agreeableness": agreeableness}
     with keras.utils.custom_object_scope(custom_objects):
         model = tf.keras.models.load_model(model_path)
     model.summary()

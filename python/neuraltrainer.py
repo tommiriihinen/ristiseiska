@@ -1,62 +1,46 @@
 # import required module
-import copy
 import os
 import sys
 import csv
+import time
+import logging
+from datetime import timedelta
 from tqdm import tqdm
-
+import pyinputplus as pyip
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
-
-# Make numpy values easier to read.
-np.set_printoptions(linewidth=1000, formatter={'all': lambda x: str(x) + ","}, threshold=sys.maxsize)
 
 # TensorFlow and tf.keras
 import tensorflow as tf
 from keras import backend as K
 import keras
 
+# Make numpy values easier to read.
+np.set_printoptions(linewidth=1000, formatter={'all': lambda x: str(x) + ","}, threshold=sys.maxsize)
+
+
 DATA_DIR = 'data'
 SAVE_DIR = 'models'
+LOGS_DIR = 'logs'
 DEFAULT_DATA = "test.csv"
 DEFAULT_SAVE = "test"
-DEFAULT_EPOCHS = 50
-DEFAULT_BATCH = 10
+
+logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(filename="logs/logs.txt", level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
+
 ALLOWED_PLAYERS = [3]
 
-"""
-Reducing overfitting
-    1. Holdout
-        80/20
-        
-    2. Cross-validation
-        Not implemented
-        
-    3. Data augmentation
-        Enough data already
-        
-    4. Feature selection
-        N/A: monolithic data
-        
-    5. L1 / L2 reqularization
-        Not implemented
-        
-    6. Remove layers / units per layer
-        Researching
-        
-    7. Dropout
-        0.2
-        
-    8. Early stopping
-        Implemented
-"""
+DEFAULT_EPOCHS = 50
+DEFAULT_BATCH = 10
+LEARNING_RATE = 0.001
+VALIDATION_SPLIT = 0.2
 
 
-def create_model():
-    input_size = 1 + 52 + (len(ALLOWED_PLAYERS) + 2) * 52
+def train(features, labels, epochs, batch_size):
+
+    # Create model
     model = tf.keras.Sequential([
-        tf.keras.layers.InputLayer(input_shape=input_size),
+        tf.keras.layers.InputLayer(input_shape=105),
         tf.keras.layers.Dense(384, activation='elu'),
         tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(384, activation='elu'),
@@ -68,19 +52,30 @@ def create_model():
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
-    def accuracy(y_true, y_pred):
-        if K.sum(y_true) == 1:
-            return K.argmax(y_true) == K.argmax(y_pred)
-        else:
-            return K.argmin(y_true) == K.argmin(y_pred)
-
-    opt = keras.optimizers.Adam(learning_rate=0.0001)
+    opt = keras.optimizers.Adam(learning_rate=LEARNING_RATE)
     model.compile(optimizer=opt,
                   loss=squared_error_masked,
-                  metrics=accuracy)
+                  metrics=agreeableness)
 
-    model.summary()
-    return model
+    # Training callbacks
+    checkpoint_path = "/".join([SAVE_DIR, "cp.ckpt"])
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                     save_weights_only=True,
+                                                     verbose=1)
+
+    earlystopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
+                                                     mode="min", patience=4,
+                                                     restore_best_weights=True)
+
+    # Training
+    history = model.fit(features,
+                        labels,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        validation_split=VALIDATION_SPLIT,
+                        callbacks=[cp_callback, earlystopping])
+
+    return model, history
 
 
 def binarize_card_id(card_id):
@@ -116,8 +111,6 @@ def binarize_card_id(card_id):
 def parse_game(game, accepted_sizes, training_inputs, training_outputs):
     winning_examples = 0
     losing_examples = 0
-
-    # print(game)
 
     players = int(game['Player Count'])
     winner = int(game['Winner'])
@@ -165,11 +158,6 @@ def parse_game(game, accepted_sizes, training_inputs, training_outputs):
                 training_outputs.append(outputs)
                 losing_examples += 1
 
-        # print("action: ", unit)
-        # print("inputs: ", inputs)
-        # print("outputs:", outputs)
-        # print("legend:   A,", 7*"CA C2 C3 C4 C5 C6 C7 C8 C9 CX CJ CQ CK DA D2 D3 D4 D5 D6 D7 D8 D9 DX DJ DQ DK HA H2 H3 H4 H5 H6 H7 H8 H9 HX HJ HQ HK SA S2 S3 S4 S5 S6 S7 S8 S9 SX SJ SQ SK ")
-
         if action:  # is play
             running_hands[player][card] = 0
             running_tables[player][card] = 1
@@ -178,9 +166,64 @@ def parse_game(game, accepted_sizes, training_inputs, training_outputs):
             running_hands[player][card] = 0
             running_hands[last_player][card] = 1
 
-        # hands = sum(sum(x) for x in running_hands)
-        # table = sum(sum(x) for x in running_tables)
-        # print(hands, table, hands + table)
+
+def parse_game2(game, accepted_sizes, training_inputs, training_outputs):
+    winning_examples = 0
+    losing_examples = 0
+
+    players = int(game['Player Count'])
+    winner = int(game['Winner'])
+
+    if players not in accepted_sizes:
+        return
+
+    # Binarize starting hands
+    starting_hands = np.zeros((players, 52), dtype="b")
+    hand_data = game['Starting Hands'].split(";")  # P1 C2 C7 DA ... ,P2 CA C3 D4 ...
+
+    for player in range(0, players):
+        card_ids = hand_data[player].strip().split(" ")  # P1 C2 C7 DA ...
+        player_id = card_ids.pop(0)  # P[1]
+
+        for card_id in card_ids:
+            starting_hands[player][binarize_card_id(card_id)] = 1
+
+    # starting hands
+    running_hands = starting_hands.copy()
+    # empty table
+    running_table = np.zeros(52, dtype="b")
+
+    # start parsing
+    turn_data = game['Actions'].split(";")
+    for unit in turn_data[:-1]:
+        contents = unit.split(" ")
+        player = int(contents[1])
+        action = 1 if (contents[0] == 'P') else 0
+        card = binarize_card_id(contents[2])
+        hand = running_hands[player]
+
+        inputs = np.concatenate((action, hand, running_table.flatten()), dtype="b", axis=None)
+        outputs = np.zeros(52, dtype="b")
+
+        if winner == player:
+            outputs[card] = 1
+            training_inputs.append(inputs)
+            training_outputs.append(outputs)
+            winning_examples += 1
+        else:
+            if winning_examples > losing_examples:
+                outputs[card] = -1
+                training_inputs.append(inputs)
+                training_outputs.append(outputs)
+                losing_examples += 1
+
+        if action:  # is play
+            running_hands[player][card] = 0
+            running_table[card] = 1
+        else:  # is give
+            last_player = (player - 1) % players
+            running_hands[player][card] = 0
+            running_hands[last_player][card] = 1
 
 
 def decomment(csvfile):
@@ -198,13 +241,15 @@ def load_data(filename):
     path = "/".join([DATA_DIR, filename])
 
     # Find file length
+    line_count = -1
     with open(path) as csvfile:
-        lines = len(csvfile.readlines())
+        for _ in csv.reader(decomment(csvfile)):
+            line_count += 1
 
     with open(path) as csvfile:
         reader = csv.DictReader(decomment(csvfile))
-        for i, row in enumerate(tqdm(reader, total=lines)):
-            parse_game(row, allowed_players, features, labels)
+        for i, row in enumerate(tqdm(reader, total=line_count)):
+            parse_game2(row, allowed_players, features, labels)
 
     return np.array(features, dtype="b"), np.array(labels, dtype="b")
 
@@ -216,8 +261,99 @@ def squared_error_masked(y_true, y_pred):
                                         y_pred.dtype), axis=-1)
 
 
-def plot(history):
-    print(history.history.keys())
+def agreeableness(y_true, y_pred):
+    """ Measure of agreeing to training data decisions """
+    if K.sum(y_true) == 1:
+        return K.argmax(y_true) == K.argmax(y_pred)
+    else:
+        return K.argmin(y_true) == K.argmax(y_pred)
+
+
+def main():
+    print(f"Ristiseiska NeuralTrainer running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
+    # print(tf.reduce_sum(tf.random.normal([1000, 1000])))
+
+    # Create logger
+    log = logging.getLogger("main")
+    log.setLevel(logging.INFO)
+
+    # Show available data
+    print("Available datasets:")
+    for filename in os.scandir(DATA_DIR):
+        if filename.is_file():
+            print(f" {filename.name}")
+
+    # Ask for training parameters
+    datafile = pyip.inputStr("Datafile: ", default=DEFAULT_DATA, limit=1)
+    savefile = pyip.inputStr("Savefile: ", default=DEFAULT_SAVE, limit=1)
+    epochs = pyip.inputInt("Epochs: ", default=DEFAULT_EPOCHS, limit=1)
+    batch_size = pyip.inputInt("Batch size: ", default=DEFAULT_BATCH, limit=1)
+
+    # Parse input data
+    parsing_start_time = time.process_time()
+    training_features, training_labels = load_data(datafile)
+    parsing_end_time = time.process_time()
+
+    # Log input data
+    log.info(f"Features size:      {training_labels.size}")
+    log.info(f"Labels size:        {training_labels.size}")
+    log.info(f"Data length:        {len(training_features)}")
+    log.info(f"Feature unit size:  {training_features[0].size}")
+    log.info(f"Label unit size:    {training_labels[0].size}")
+    log.info(f"Feature datatype:   {training_features.dtype}")
+    log.info(f"Label datatype:     {training_labels.dtype}")
+
+    # Train model
+    training_start_time = time.process_time()
+    model, history = train(training_features,
+                           training_labels,
+                           epochs,
+                           batch_size)
+    training_end_time = time.process_time()
+
+    # Saving model
+    save_path = "/".join([SAVE_DIR, savefile])
+    model.save(save_path)
+    print(f"Model saved in '{SAVE_DIR}' as '{savefile}'")
+
+    # Logging to file with <savefile>.txt as name
+    logs_path = "/".join([LOGS_DIR, savefile + ".txt"])
+    model_logger_fhandler = logging.FileHandler(logs_path, mode="w")
+    model_logger_fhandler.setLevel(logging.INFO)
+    log.addHandler(model_logger_fhandler)
+
+    # Log model training
+    log.info(f"Name: {savefile}")
+    model.summary(print_fn=log.info)
+
+    log.info(f"Datafile: {datafile}")
+    log.info(f"Parameters:")
+    log.info(f"  Epochs: {epochs}")
+    log.info(f"  Batch size: {batch_size}")
+    log.info(f"  Validation split: {VALIDATION_SPLIT}")
+    log.info(f"  Learning rate: {LEARNING_RATE}")
+    log.info(f"Time elapsed:")
+    log.info(f"  Parsing:  {time.strftime('%Hh%Mm%Ss', time.gmtime(parsing_end_time - parsing_start_time))}")
+    log.info(f"  Training: {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - training_start_time))}")
+    log.info(f"Training history:")
+
+    for field, data in history.history.items():
+        log.info(f"  {field}:")
+        for line in data:
+            log.info(f"    {line:.4f}")
+
+    model_logger_fhandler.close()
+    logging.shutdown()
+
+    # Plot history
+    # summarize history for agreeableness
+    plt.plot(history.history['agreeableness'])
+    plt.plot(history.history['val_agreeableness'])
+    plt.title('model agreeableness')
+    plt.ylabel('agreeableness')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
     # summarize history for loss
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
@@ -226,82 +362,6 @@ def plot(history):
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
     plt.show()
-
-
-def batch_generator(Train_df, batch_size, steps):
-    idx = 1
-    while True:
-        yield load_data(Train_df, idx - 1, batch_size)  ## Yields data
-        if idx < steps:
-            idx += 1
-        else:
-            idx = 1
-
-
-def main():
-    print(f"Ristiseiska NeuralTrainer running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
-    # print(tf.reduce_sum(tf.random.normal([1000, 1000])))
-
-    print("Available datasets:")
-    for filename in os.scandir(DATA_DIR):
-        if filename.is_file():
-            print(f" {filename.name}")
-
-    datafile = input("which file to train from: ")
-    savefile = input("what to save the model as: ")
-    try:
-        epochs = int(input("How many epochs to train:"))
-    except ValueError:
-        epochs = DEFAULT_EPOCHS
-    try:
-        batch_size = int(input("How large will the batch size be:"))
-    except ValueError:
-        batch_size = DEFAULT_BATCH
-    if not datafile:
-        datafile = DEFAULT_DATA
-    if not savefile:
-        savefile = DEFAULT_SAVE
-
-    print("Parsing data")
-    training_features, training_labels = load_data(datafile)
-    print("Parsing complete")
-
-    model = create_model()
-    print("Model compiled")
-
-    print("Size of training features: ", training_features.size)
-    print("Size if training labels:   ", training_labels.size)
-    print("Training data length:      ", len(training_features))
-    print("Training feature unit size:", training_features[0].size)
-    print("Training label unit size:  ", training_labels[0].size)
-    print("Feature datatype:          ", training_features.dtype)
-    print("Label   datatype:          ", training_labels.dtype)
-
-    checkpoint_path = "models/cp.ckpt"
-    checkpoint_dir = os.path.dirname(checkpoint_path)
-
-    # Create a callback that saves the model's weights
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                     save_weights_only=True,
-                                                     verbose=1)
-
-    earlystopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
-                                                     mode="min", patience=2,
-                                                     restore_best_weights=True)
-
-    # Train the model with the new callback
-    history = model.fit(training_features,
-                        training_labels,
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        validation_split=0.10,
-                        callbacks=[cp_callback, earlystopping])
-
-    save_path = "/".join([SAVE_DIR, savefile])
-    model.save(save_path)
-    print(f"Model saved in '{SAVE_DIR}' as '{savefile}'")
-
-    plot(history)
 
 
 if __name__ == "__main__":
