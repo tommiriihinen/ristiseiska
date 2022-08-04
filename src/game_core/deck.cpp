@@ -65,8 +65,8 @@ Card Deck::topCard() const {
 
 void Deck::put(const Card &card, Deck &target_deck) {
     //qDebug() << "Put: " << card.id() << " from " << this->toString() << " to " << target_deck.toString();
-    assert(this->contains(card));
-    assert(!target_deck.contains(card));
+    Q_ASSERT(this->contains(card));
+    Q_ASSERT(!target_deck.contains(card));
 
     // remove from this deck
     for (std::vector<Card>::iterator it = this->cards.begin() ; it != this->cards.end(); ++it) {

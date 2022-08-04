@@ -83,7 +83,7 @@ void DataWriter::saveFile() {
 
 void DataWriter::addMetadata(Benchmark &bm) {
     // Here we overwrite the space we left at the beginning of the file.
-    assert(fileOpen);
+    Q_ASSERT(fileOpen);
     qDebug() << "Wrting metadata";
     mMetadata.mBenchmark = bm;
     QString metadata = mMetadata.toString();
@@ -108,7 +108,7 @@ void DataWriter::addMetadata(Benchmark &bm) {
 
 void DataWriter::gameStarted() {
 
-    assert(game->isRunning());
+    Q_ASSERT(game->isRunning());
 
     // Listen for players actions
     for (auto p : game->getPlayers()) {

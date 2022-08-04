@@ -27,7 +27,7 @@ void Game::addPlayer(pIPlayer p) {
 
 bool Game::removePlayer(pIPlayer p) {
     // doesn't contain
-    assert(std::find(players.begin(), players.end(), p) != players.end());
+    Q_ASSERT(std::find(players.begin(), players.end(), p) != players.end());
     // remove
     players.erase(std::remove(players.begin(), players.end(), p), players.end());
 
@@ -65,9 +65,9 @@ void Game::setSettings(GameSettings gs) {
 
 void Game::start() {
 
-    assert(!mRunning);
-    assert(!players.empty());
-    assert(!mDealer.getDeck().isEmpty());
+    Q_ASSERT(!mRunning);
+    Q_ASSERT(!players.empty());
+    Q_ASSERT(!mDealer.getDeck().isEmpty());
 
     mDealer.deal();
 
@@ -136,7 +136,7 @@ void Game::stop() {
 
 
 void Game::play_card(const Card &card, const bool continues) {
-    assert(mBoard.canPlay(card));
+    Q_ASSERT(mBoard.canPlay(card));
 
     mBoard.playCard(card, *current_player->getDeck());
 

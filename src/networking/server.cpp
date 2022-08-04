@@ -25,7 +25,7 @@ void Server::queueSocketPlayerProduction(SocketPlayer* player) {
 
 void Server::incomingConnection(long long socketDescriptor)
 {
-    assert(!mProductionQueue.empty());
+    Q_ASSERT(!mProductionQueue.empty());
 
     auto player = mProductionQueue.back();
     mProductionQueue.pop_back();
@@ -55,7 +55,7 @@ void Server::incomingConnection(long long socketDescriptor)
 }
 
 void Server::socketPlayerReady(SocketPlayer* id) {
-    assert(!mConnectionQueue.empty());
+    Q_ASSERT(!mConnectionQueue.empty());
 
     mConnectionQueue.erase(std::remove(mConnectionQueue.begin(), mConnectionQueue.end(), id), mConnectionQueue.end());
     qDebug() << "Socketplayer ready";

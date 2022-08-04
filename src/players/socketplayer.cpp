@@ -73,7 +73,7 @@ void SocketPlayer::recieve(QString data) {
             emit send("ERROR;This card doesn't fit the board");
             return;
         }
-        assert(parts.size() == 2);
+        Q_ASSERT(parts.size() == 2);
 
         bool continues = parts[1] == "1";
         emit play_card(card, continues);

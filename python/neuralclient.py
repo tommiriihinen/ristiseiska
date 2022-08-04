@@ -6,10 +6,15 @@ import sys
 import codecs
 import logging
 from timeit import default_timer as timer
+import argparse
 
+print("Loading numpy")
 import numpy as np
+print("Loading tensorflow")
 import tensorflow as tf
+print("Loading keras")
 import keras
+print("Loading keras backend")
 from keras import backend as K
 
 """
@@ -34,16 +39,11 @@ logging.basicConfig(level=logging.INFO,
 
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
+MSG_DELIMITER = "/"
+MSG_DELIMITER_UTF8 = MSG_DELIMITER.encode('UTF-8')
 DIR = "models"
-nickname = "mestari-tikku"
-DEFAULT_FILE = ""
 SHOW_GAME = True
 MAX_PLAYERS = 3
-
-model = None
-client = None
-
-print(f"Ristiseiska NeuralClient running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
 
 
 def binarize_card(card_id):
@@ -75,7 +75,7 @@ def binarize_card(card_id):
     return card_index
 
 
-def de_binarize_card(card_index):
+def debinarize_card(card_index):
     suit = ' '
     rem = card_index // 13
     if rem == 0:
@@ -106,172 +106,16 @@ def de_binarize_card(card_index):
     return card_id  # C-S A-K
 
 
-def normalize_id(id):
+def normalize_id(id, my_id):
     if id < my_id:
         return id + 1
     else:
         return id
 
 
-
-my_id = 0
-current_player_id = 0
-tables = np.zeros((MAX_PLAYERS, 52))
-table = np.zeros(52)
-hand = np.zeros(52)
-options = np.zeros(52)
-action = 0
-
-
-# Listening to Server and Sending Nickname
-def receive():
-    global options, action, hand, tables, table, my_id, current_player_id
-    dec = codecs.getincrementaldecoder('utf8')()
-
-    while True:
-        received = client.recv(2048)
-        messages = dec.decode(received).split("*")
-
-        while len(messages) > 1:
-            message = messages.pop(0).strip()
-
-            parts = message.split(';')
-            if len(parts) == 1:
-                logging.warning("ERRONEOUS INPUT:", message, ":", received)
-                continue
-
-            cmd = parts[0]
-            content = parts[1]
-
-            logging.debug(f"recv: {cmd}")
-
-            if cmd == 'PLAY':
-                action = 1
-                decision = decide()
-                send(decision)
-                options = np.zeros(52)
-
-            elif cmd == 'GIVE':
-                action = 0
-                decision = decide()
-                send(decision)
-                options = np.zeros(52)
-
-            elif cmd == 'WAIT':
-                pass
-
-            elif cmd == 'STARTING_CARDS':
-                hand[binarize_card(content)] = 1
-
-            elif cmd == 'CARD_PLAYED':
-                # Put card on the correct players table
-                player = normalize_id(current_player_id)
-                card = binarize_card(content)
-                tables[player][card] = 1
-                table[card] = 1
-
-            elif cmd == 'CARD_GIVEN':
-                # Take card in hand
-                hand[binarize_card(content)] = 1
-
-            elif cmd == 'TURN':
-                current_player_id = int(content)
-
-            elif cmd == 'ID':
-                my_id = int(content)
-                # Reset
-                options = np.zeros(52)
-                current_player_id = 0
-                tables = np.zeros((MAX_PLAYERS, 52))
-                table = np.zeros(52)
-                hand = np.zeros(52)
-                action = 0
-
-            elif cmd == 'OPTION':
-                logging.info(f"Option: {content}")
-                options[binarize_card(content)] = 1
-
-            elif cmd == 'NICK':
-                send(nickname)
-
-            elif cmd == 'MSG':
-                logging.info(content)
-
-            elif cmd == 'SETTINGS':
-                name, value = content.split(":")
-                if name == 'SHOW':
-                    if int(value):
-                        logging.warning("Setting logger to show info")
-                        logging.getLogger().setLevel(logging.INFO)
-                    else:
-                        logging.warning("Setting logger to hide info")
-                        logging.getLogger().setLevel(logging.WARNING)
-
-            elif cmd == "END":
-                pass
-
-            else:
-                logging.warning(f"UNCAUGHT MESSAGE: {message}")
-
-
-def send(message):
-    message += "*"
-    try:
-        client.send(message.encode('UTF-8'))
-    except OSError as e:
-        logging.error(e)
-        if e.errno == 10054:
-            os._exit()
-
-
-def decide():
-    global action, hand, table, model
-
-    # Pass of nothing fits
-    if np.all(options == 0):
-        logging.info("Passing")
-        return 'P'
-
-    continues = False
-
-    # Construct model input
-    model_input = np.concatenate((action, hand, table.flatten()), axis=None)
-    model_input = model_input.reshape((1, 105))
-    # Decide
-    model_output = model.predict_single(model_input)
-
-    has = np.multiply(model_output, hand).flatten()
-    logging.info(f"Hand scrore: {np.sum(has):.2f}")
-    logging.info(f"Want's to play:  {debinarize_array(has)}")
-    # Realize
-    realization = np.multiply(model_output, options)
-    logging.info(f"Can play:        {debinarize_array(realization)}")
-
-    realization[realization == 0] = -np.inf
-    decision = np.argmax(realization)
-
-    # If everything fits, end game. Wasteful here, needs refactoring
-    if np.array_equal(options, hand):
-        for i in np.flatnonzero(options):
-            if de_binarize_card(i)[1] in ['K', 'A']:
-                decision = i
-                continues = True
-                break
-
-    # Apply to self
-    hand[decision] = 0
-    if action == 1:  # Card played
-        table[decision] = 1
-    # Apply to world
-    card = de_binarize_card(decision)
-    logging.info(f"Decision: {card}, continues: {continues}")
-
-    return card + ";" + str(int(continues))
-
-
 def debinarize_array(array: np.ndarray):
     array = array.flatten()
-    return (" ".join(map(lambda card_index: de_binarize_card(card_index[0]),
+    return (" ".join(map(lambda card_index: debinarize_card(card_index[0]),
                          sorted(np.argwhere(array),
                                 key=lambda idx: array[idx]))))
 
@@ -279,8 +123,34 @@ def debinarize_array(array: np.ndarray):
 class LiteModel:
 
     @classmethod
-    def from_file(cls, model_path):
+    def from_flatbuffer_file(cls, model_path):
         return LiteModel(tf.lite.Interpreter(model_path=model_path))
+
+    @classmethod
+    def from_keras_model_file(cls, model_path):
+
+        def agreeableness(y_true, y_pred):
+            if K.sum(y_true) == 1:
+                return K.argmax(y_true) == K.argmax(y_pred)
+            else:
+                return K.argmin(y_true) == K.argmax(y_pred)
+
+        def squared_error_masked(y_true, y_pred):
+            """ Squared error of elements where y_true is not 0 """
+            err = y_pred - (K.cast(y_true, y_pred.dtype) * 1)
+            return K.sum(K.square(err) * K.cast(K.not_equal(y_true, 0),
+                                                y_pred.dtype), axis=-1)
+
+        custom_objects = {"squared_error_masked": squared_error_masked,
+                          "agreeableness": agreeableness}
+
+        with keras.utils.custom_object_scope(custom_objects):
+            kmodel = tf.keras.models.load_model(model_path)
+        kmodel.summary()
+
+        converter = tf.lite.TFLiteConverter.from_keras_model(kmodel)
+        tflite_model = converter.convert()
+        return LiteModel(tf.lite.Interpreter(model_content=tflite_model))
 
     @classmethod
     def from_keras_model(cls, kmodel):
@@ -319,58 +189,192 @@ class LiteModel:
         return out[0]
 
 
-def load_model():
-    global nickname
+class NeuralPlayer:
+
+    def __init__(self, model: LiteModel):
+        self.model = model
+        self.hand = np.zeros(52)
+        self.options = np.zeros(52)
+
+    def add_card(self, card):
+        self.hand[binarize_card(card)] = 1
+
+    def reset_cards(self):
+        self.hand = np.zeros(52)
+
+    def play(self, table, options):
+        return self.act(1, table, options)
+
+    def give(self, table):
+        return self.act(0, table, self.hand)
+
+    def act(self, action: int, table: np.ndarray, options: np.ndarray):
+
+        # Pass of nothing fits
+        if np.all(options == 0):
+            logging.info("Passing")
+            return 'P'
+
+        continues = False
+
+        # Construct model input
+        model_input = np.concatenate((action, self.hand, table.flatten()), axis=None)
+        model_input = model_input.reshape((1, 105))
+
+        # Use model to intuit
+        model_output = self.model.predict_single(model_input)
+
+        has = np.multiply(model_output, self.hand).flatten()
+        logging.info(f"Hand score: {np.sum(has):.2f}")
+        logging.info(f"Want's to play:  {debinarize_array(has)}")
+
+        # Filter unfeasible moves
+        realization = np.multiply(model_output, options)
+        logging.info(f"Can play:        {debinarize_array(realization)}")
+
+        realization[realization == 0] = -np.inf
+        decision = np.argmax(realization)
+
+        # If everything fits, end game. Wasteful here, needs refactoring
+        if np.array_equal(options, self.hand):
+            for i in np.flatnonzero(options):
+                if debinarize_card(i)[1] in ['K', 'A']:
+                    decision = i
+                    continues = True
+                    break
+
+        self.hand[decision] = 0
+        if action == 1:  # Card played
+            table[decision] = 1
+
+        card = debinarize_card(decision)
+        logging.info(f"Decision: {card}, continues: {continues}")
+        return f"{card};{str(int(continues))}"
+
+
+class NeuralClient:
+
+    def __init__(self, nickname, model):
+        self.nickname = nickname
+        self.__tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__tcp_socket.connect(('127.0.0.1', 55555))
+
+        self.player = NeuralPlayer(model)
+
+        self.table = np.zeros(52)
+        self.options = np.zeros(52)
+
+        self.id = None
+        self.current_player_id = None
+
+    def listen(self):
+        dec = codecs.getincrementaldecoder('utf8')()
+        while True:
+            received = self.__tcp_socket.recv(2048)
+            messages = dec.decode(received).split(MSG_DELIMITER)
+            for message in messages:
+                if message != '':
+                    self.handle_message(message)
+
+    def handle_message(self, message):
+        try:
+            cmd, content = message.split(";")
+        except ValueError:
+            logging.warning(f"ERRONEOUS INPUT: '{message}'")
+            return
+
+        logging.debug(f"received: {cmd}")
+
+        if cmd in ['WAIT']:
+            pass
+
+        elif cmd == 'PLAY':
+
+            card = self.player.play(self.table, self.options)
+            self.send(card)
+            self.options = np.zeros(52)
+
+        elif cmd == 'GIVE':
+
+            card = self.player.give(self.table)
+            self.send(card)
+            self.options = np.zeros(52)
+
+        elif cmd == 'STARTING_CARDS':
+            self.player.add_card(content)
+
+        elif cmd == 'CARD_PLAYED':
+            # Put card on the table
+            self.table[binarize_card(content)] = 1
+
+        elif cmd == 'CARD_GIVEN':
+            # Take card in hand
+            self.player.add_card(content)
+
+        elif cmd == 'TURN':
+            current_player_id = int(content)
+
+        elif cmd == 'ID':
+            self.id = int(content)
+            # Reset
+            self.table = np.zeros(52)
+            self.player.reset_cards()
+
+        elif cmd == 'OPTION':
+            logging.info(f"Option: {content}")
+            self.options[binarize_card(content)] = 1
+
+        elif cmd == 'NICK':
+            self.send(self.nickname)
+
+        elif cmd == 'MSG':
+            logging.info(content)
+
+        elif cmd == 'SETTINGS':
+            name, value = content.split(":")
+            if name == 'SHOW':
+                if int(value):
+                    logging.warning("Setting logger to show info")
+                    logging.getLogger().setLevel(logging.INFO)
+                else:
+                    logging.warning("Setting logger to hide info")
+                    logging.getLogger().setLevel(logging.WARNING)
+
+        elif cmd == "END":
+            pass
+
+        else:
+            logging.warning(f"UNCAUGHT MESSAGE: {message}")
+
+    def send(self, message):
+        try:
+            self.__tcp_socket.send((message + MSG_DELIMITER).encode('UTF-8'))
+        except OSError as e:
+            logging.error(e)
+            logging.error(e.errno)
+            if e.errno == 10054:
+                quit()
+
+
+def main():
+    print(f"Ristiseiska NeuralClient running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
+
     print("Directory " + DIR + " contents:")
     for filename in os.scandir(DIR):
         if not filename.is_file():
             print(f" {filename.name}")
     model_directory = input("Which model to use: ")
-    nickname = model_directory
     model_path = DIR + "/" + model_directory
 
+    print(os.path.abspath(model_directory))
+
     print("Loading " + model_path)
+    model = LiteModel.from_keras_model_file(model_path)
 
-    def agreeableness(y_true, y_pred):
-        if K.sum(y_true) == 1:
-            return K.argmax(y_true) == K.argmax(y_pred)
-        else:
-            return K.argmin(y_true) == K.argmax(y_pred)
+    nickname = model_directory
 
-    def squared_error_masked(y_true, y_pred):
-        """ Squared error of elements where y_true is not 0 """
-        err = y_pred - (K.cast(y_true, y_pred.dtype) * 1)
-        return K.sum(K.square(err) * K.cast(K.not_equal(y_true, 0),
-                                            y_pred.dtype), axis=-1)
-
-    custom_objects = {"squared_error_masked": squared_error_masked,
-                      "agreeableness": agreeableness}
-    # Load model
-    with keras.utils.custom_object_scope(custom_objects):
-        model_keras = tf.keras.models.load_model(model_path)
-    model_keras.summary()
-
-    print("Converting to a TensorFlow Lite model")
-    start_time = timer()
-    lite_model = LiteModel.from_keras_model(model_keras)
-    print(f'conversion time: {timer() - start_time:.6f} seconds')
-
-    # Converting a tf.Keras model to a TensorFlow Lite model.
-    converter = tf.lite.TFLiteConverter.from_keras_model(model_keras)
-    tflite_model = converter.convert()
-
-    return lite_model
-
-
-def main():
-    global model, client
-    # Connecting To Server
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(('127.0.0.1', 55555))
-
-    model = load_model()
-    # Start main loop
-    receive()
+    client = NeuralClient(nickname, model)
+    client.listen()
 
 
 if __name__ == "__main__":

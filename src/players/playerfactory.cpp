@@ -46,7 +46,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
             args = "-m pdb -c continue ";
         #endif
         std::string file = "neuralclient.py";
-        std::string command = "start " + title + " cmd /k \"" + navigate + " & "
+        std::string command = "start " + title + " cmd /c \"" + navigate + " & "
                                                               + activate_env + " & "
                                                               + "python " + args + file
                                                               + "\"";

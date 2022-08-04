@@ -14,10 +14,10 @@ void Connection::run()
 
 void Connection::readyRead(){
     QByteArray utfData = socket->readAll();
-    //qDebug() << socketDescriptor << " RECIEVED: " << utfData;
+    // qDebug() << socketDescriptor << " RECIEVED: " << utfData;
     QString data = QString::fromUtf8(utfData);
 
-    for (auto& line : data.split("*")) {
+    for (auto& line : data.split(MSG_DELIMITER)) {
         //qDebug() << "line: " + line;
         emit recieved(line);
     }
@@ -26,8 +26,7 @@ void Connection::readyRead(){
 void Connection::send(QString data) {
     QByteArray utfData = data.toUtf8();
     // qDebug() << socketDescriptor << " SENDING: " << utfData;
-    socket->write(utfData + "*");
-    socket->flush();
+    socket->write(utfData.append(MSG_DELIMITER_UTF8));
 }
 
 void Connection::disconnected()

@@ -58,7 +58,7 @@ void Application::gameEnded(IPlayer &winner) {
         break;
 
     default:
-        assert("gameEnded(): Application bad state");
+        Q_ASSERT("Game ended while application is in bad state");
     }
 }
 
