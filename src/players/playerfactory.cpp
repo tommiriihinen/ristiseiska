@@ -3,8 +3,15 @@
 PlayerFactory::PlayerFactory(QObject *parent)
     : QObject{parent}
 {
-    server = new Server();
-    connect(server, &Server::allSocketPlayersReady, this, &PlayerFactory::allPlayersReady);
+    mServer = new QTcpServer(this);
+    if (!mServer->listen(QHostAddress::Any, 55555)) {
+        qCritical() << tr("Unable to start the server: %1.").arg(mServer->errorString());
+        return;
+    } else {
+        qDebug() << "Server listening for connections";
+    }
+
+    connect(mServer, &QTcpServer::newConnection, this, &PlayerFactory::connectSocketPlayer);
 }
 
 void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, bool benchmarking) {
@@ -23,8 +30,9 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, b
         std::shared_ptr<SocketPlayer> player (new SocketPlayer);
         game.addPlayer(player);
 
-        server->queueSocketPlayerProduction(player.get());
-        // When all socket players are ready tell game that players are ready.
+        mSocketPlayerStatusMap.insert(player.get(), SocketPlayerStatus::not_connected);
+
+        // Start client
         std::string title = "\"CandyClient\"";
         std::string location = QCoreApplication::applicationDirPath().toStdString();
         std::string command = "start " + title + " python " + location + "/candyclient.py";
@@ -34,13 +42,13 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, b
         std::shared_ptr<SocketPlayer> player (new SocketPlayer);
         game.addPlayer(player);
 
-        server->queueSocketPlayerProduction(player.get());
-        // When all socket players are ready tell game that players are ready.
+        mSocketPlayerStatusMap.insert(player.get(), SocketPlayerStatus::not_connected);
+
+        // Start client
         std::string title = "\"NeuralClient\"";
         std::string navigate = "cd " + QCoreApplication::applicationDirPath().toStdString();
         std::string activate_env  = "C:/ProgramData/Miniconda3/Scripts/activate.bat & conda activate tf";
         std::string python = "C:/ProgramData/Miniconda3/python.exe "; //
-
         std::string pythonargs = "";
         #ifdef QT_DEBUG
             pythonargs += "-m pdb -c continue ";
@@ -54,7 +62,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, b
                                                               + "python " + pythonargs
                                                               + file + args
                                                               + "\"";
-        system(command.c_str());
+        system(command.c_str());        
     }
 
     // SERVER HOSTED PLAYERS:
@@ -77,9 +85,32 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, b
 
     if (clientplrs + neuralplrs == 0) {
         emit allPlayersReady();
-    } else {
-        if (!server->isListening()) {
-            server->StartServer();
-        }
+    }
+}
+
+void PlayerFactory::connectSocketPlayer() {
+
+    qDebug() << "Connecting SocketPlayer";
+    QTcpSocket *clientConnection = mServer->nextPendingConnection();
+    connect(clientConnection, &QAbstractSocket::disconnected, clientConnection, &QObject::deleteLater);
+
+    SocketPlayer* player = mSocketPlayerStatusMap.key(SocketPlayerStatus::not_connected); // get an unconnected SocketPlayer object
+    player->setSocket(clientConnection);
+
+    connect(player, &SocketPlayer::playerReady, this, &PlayerFactory::socketPlayerReady);
+    mSocketPlayerStatusMap[player] = SocketPlayerStatus::naming;
+    player->send("NICK;");
+}
+
+void PlayerFactory::socketPlayerReady(SocketPlayer* readyPlayer) {
+
+    qDebug() << readyPlayer->getName() << " named ";
+    disconnect(readyPlayer, &SocketPlayer::playerReady, this, &PlayerFactory::socketPlayerReady);
+
+    Q_ASSERT(mSocketPlayerStatusMap[readyPlayer] == SocketPlayerStatus::naming);
+    mSocketPlayerStatusMap.remove(readyPlayer);
+
+    if (mSocketPlayerStatusMap.isEmpty()) {
+        emit allPlayersReady();
     }
 }

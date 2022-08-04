@@ -18,8 +18,8 @@ void Game::addPlayer(pIPlayer p) {
 
     // If the player is SocketPlayer do some exstra connections
     if (auto sp = std::dynamic_pointer_cast<SocketPlayer>(p)) {
-        connect(this, &Game::announce, sp.get(), &SocketPlayer::announcements);
-        connect(this, &Game::whisper, sp.get(), &SocketPlayer::whispers);
+        connect(this, &Game::announce, sp.get(), &SocketPlayer::recieveAnnouncement);
+        connect(this, &Game::whisper, sp.get(), &SocketPlayer::recieveWhisper);
     }
     p->setBoard(mBoard);
     mDealer.addDeck(p->getDeck());
@@ -38,8 +38,8 @@ bool Game::removePlayer(pIPlayer p) {
     disconnect(this, &Game::victory, p.get(), &IPlayer::game_ended);
 
     if (auto sp = std::dynamic_pointer_cast<SocketPlayer>(p)) {
-        disconnect(this, &Game::announce, sp.get(), &SocketPlayer::announcements);
-        disconnect(this, &Game::whisper, sp.get(), &SocketPlayer::whispers);
+        disconnect(this, &Game::announce, sp.get(), &SocketPlayer::recieveAnnouncement);
+        disconnect(this, &Game::whisper, sp.get(), &SocketPlayer::recieveWhisper);
     }
     mDealer.removeDeck(p->getDeck());
     return true;
@@ -54,6 +54,8 @@ void Game::clearPlayers() {
     for (const auto &p : original) {
         removePlayer(p);
     }
+    current_player = nullptr;
+    last_playing_player = nullptr;
 }
 
 void Game::setSettings(GameSettings gs) {
@@ -137,6 +139,7 @@ void Game::stop() {
 
 void Game::play_card(const Card &card, const bool continues) {
     Q_ASSERT(mBoard.canPlay(card));
+    mConsecutivePassCounter = 0; // this turn no pass so reset counter
 
     mBoard.playCard(card, *current_player->getDeck());
 
@@ -168,18 +171,23 @@ void Game::play_card(const Card &card, const bool continues) {
 }
 
 void Game::give_card(const Card &card) {
-    emit whisper(*current_player.get(), card.id(), "CARD_GIVEN");
+    IPlayer* giver = last_playing_player.get();
+    IPlayer* taker = current_player.get();
+
+    emit whisper(*taker, card.id(), "CARD_GIVEN");
 
     if (mSettings.game_quality == GameQuality::pretty) {
-        emit announce(current_player->getName() + " took a card from " + last_player->getName());
-        emit whisper(*current_player.get(), last_player->getName() + " gave you " + card.id());
+        emit announce(taker->getName() + " took a card from " + giver->getName());
+        emit whisper(*taker, giver->getName() + " gave you " + card.id());
     }
 
-    last_player->getDeck()->put(card, *current_player->getDeck());
+    giver->getDeck()->put(card, *taker->getDeck());
     next_turn();
 }
 
 void Game::pass_turn() {
+    mConsecutivePassCounter++;
+
     if (mSettings.game_quality == GameQuality::pretty) {
         emit announce(current_player->getName() + " passed");
     }
@@ -188,8 +196,8 @@ void Game::pass_turn() {
     if (mBoard.isEmpty()) {
         next_turn();
     } else {
-        // Otherwise take a card from the last player
-        emit take_action(*last_player.get(), give);
+        // Otherwise take a card from the last playing player
+        emit take_action(*last_playing_player.get(), give);
     }
 
 }
@@ -205,8 +213,8 @@ void Game::next_turn() {
 
     if (winner == nullptr) {
         mTurn++;
-        this->last_player = current_player;
-        this->current_player = players[(mTurn-1) % players.size()];
+        this->last_playing_player = players[(mTurn-mConsecutivePassCounter) % players.size()];
+        this->current_player      = players[(mTurn) % players.size()];
 
         if (mSettings.game_quality == GameQuality::pretty) {
             emit announce(current_player->getName() + "'s turn:");

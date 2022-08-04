@@ -6,12 +6,13 @@
 #include <QObject>
 
 
-class Connection : public QThread
+class Connection : public QObject
 {
     Q_OBJECT
 public:
     explicit Connection(int iID, QObject *parent = nullptr);
-    void run();
+
+    void send(QString data);
 
 signals:
     void error(QTcpSocket::SocketError socketerror);
@@ -22,7 +23,6 @@ public slots:
     void disconnected();
     void createSocket();
     void destroySocket();
-    void send(QString data);
 
 private:
     QString MSG_DELIMITER { "/" };

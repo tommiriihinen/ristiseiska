@@ -69,8 +69,6 @@ void Benchmarker::gameEnded(IPlayer &winner) {
     if (mBenchmarkStep / mRounds == 2) {
         // Quit benchmark
         revertGameBack();
-        //disconnect(this, &Benchmarker::startGame, game, &Game::start);
-        //disconnect(game, &Game::victory, this, &Benchmarker::gameEnded);
         mBenchplayer = nullptr;
         emit benchmarkComplete(mLatestBenchmark);
         return;
@@ -81,9 +79,6 @@ void Benchmarker::gameEnded(IPlayer &winner) {
 
 
 void Benchmarker::startBenchmark(pIPlayer player, int benchmarkTarget, PlayerType types[2], int maxOpponents) {
-    //connect(this, &Benchmarker::startGame, game, &Game::start);
-    //connect(game, &Game::victory, this, &Benchmarker::gameEnded);
-
     mBenchplayer = player;
     mBenchmarkTarget = benchmarkTarget;
     mOpponents[0] = types[0];
@@ -127,4 +122,6 @@ void Benchmarker::revertGameBack() {
 
     game->addPlayers(mOriginalPlayers);
     game->setSettings(mOriginalSettings);
+
+    mOriginalPlayers.clear();
 }

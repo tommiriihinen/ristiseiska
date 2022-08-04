@@ -23,12 +23,6 @@ void Connection::readyRead(){
     }
 }
 
-void Connection::send(QString data) {
-    QByteArray utfData = data.toUtf8();
-    // qDebug() << socketDescriptor << " SENDING: " << utfData;
-    socket->write(utfData.append(MSG_DELIMITER_UTF8));
-}
-
 void Connection::disconnected()
 {
     qDebug() << socketDescriptor << " Disconnected";
@@ -57,8 +51,8 @@ void Connection::createSocket() {
 
 void Connection::destroySocket() {
     qDebug() << "Destroying socket";
-    socket->disconnect();
     send("KILL;");
+    socket->disconnect();
     socket->deleteLater();
     this->exit();
 }

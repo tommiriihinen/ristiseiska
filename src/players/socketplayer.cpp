@@ -1,6 +1,23 @@
 
 #include "socketplayer.h"
 
+SocketPlayer::SocketPlayer(QObject *parent)
+    : IPlayer(parent) {
+    qDebug() << "Constructing socketplayer";
+}
+
+SocketPlayer::~SocketPlayer() {
+    qDebug() << "Destructing socketplayer";
+    send("KILL;");
+    mSocket->close();
+    mSocket->deleteLater();
+}
+
+void SocketPlayer::setSocket(QTcpSocket *socket){
+    mSocket = socket;
+    connect(socket, &QTcpSocket::readyRead, this, &SocketPlayer::recieve);
+}
+
 void SocketPlayer::take_action(IPlayer &player, GameAction action) {
 
     if (this != &player) return;
@@ -13,30 +30,44 @@ void SocketPlayer::take_action(IPlayer &player, GameAction action) {
         mState = play;
         std::vector<Card> options = findOptions(mHand, *board);
         for (Card option : options) {
-            emit send("OPTION;" + option.id());
+            send("OPTION;" + option.id());
         }
-        emit send("MSG;Your cards: " + mHand.toString());
-        emit send("MSG;Play card or [P]ass:");
-        emit send("PLAY;");
+        send("MSG;Your cards: " + mHand.toString());
+        send("PROMPT;Play card or [P]ass:");
+        send("PLAY;");
     }
     if (action == give) {
         mState = give;
-        emit send("MSG;Give a card");
         for (Card option : mHand.toVector()) {
-            emit send("OPTION;" + option.id());
+            send("OPTION;" + option.id());
         }
-        emit send("MSG;Your cards: " + mHand.toString());
-        emit send("GIVE;");
+        send("MSG;Your cards: " + mHand.toString());
+        send("PROMPT;Give a card");
+        send("GIVE;");
 
     }
 }
 
 
-void SocketPlayer::recieve(QString data) {
+void SocketPlayer::recieve() {
+
+    QByteArray utfData = mSocket->readAll();
+    // qDebug() << mName << " RECIEVED: " << utfData;
+    QString data = QString::fromUtf8(utfData);
+
+    for (auto& line : data.split(MSG_DELIMITER)) {
+        //qDebug() << "line: " + line
+        if (line != "") {
+            handleMessage(line);
+        }
+    }
+}
+
+void SocketPlayer::handleMessage(QString message) {
 
     if (mName == "null") {
-        mName = data;
-        emit creationComplete(this);
+        mName = message;
+        emit playerReady(this);
         return;
     }
 
@@ -46,31 +77,31 @@ void SocketPlayer::recieve(QString data) {
 
     if (mState == play) {
 
-        QList<QString> parts = data.split(";");
+        QList<QString> parts = message.split(";");
 
         if (parts[0] == "P" or parts[0] == "p") {
 
             if (!canPass(mHand, *board)) {
-                emit send("ERROR;Can't pass when cards fit");
+                send("ERROR;Can't pass when cards fit");
                 return;
             }
             emit pass_turn();
             mActionPending = false;
-            emit send("WAIT;");
             return;
         }
 
         Card card = Card(parts[0]);
         if (card.getSuit() == none or card.getRank() == -1) {
-            emit send("ERROR;Not a valid card");
+            qDebug() << card.id();
+            send("ERROR;Not a valid card");
             return;
         }
         if (!mHand.contains(card)) {
-            emit send("ERROR;You don't have this card");
+            send("ERROR;You don't have this card");
             return;
         }
         if (!board->canPlay(card)) {
-            emit send("ERROR;This card doesn't fit the board");
+            send("ERROR;This card doesn't fit the board");
             return;
         }
         Q_ASSERT(parts.size() == 2);
@@ -78,35 +109,39 @@ void SocketPlayer::recieve(QString data) {
         bool continues = parts[1] == "1";
         emit play_card(card, continues);
         mActionPending = false;
-        emit send("WAIT;");
         return;
     }
 
     if (mState == give) {
 
-        Card card = Card(data);
+        Card card = Card(message);
         if (card.getSuit() == none or card.getRank() == -1) {
-            emit send("ERROR;Not a valid card");
+            send("ERROR;Not a valid card");
             return;
         }
         if (!mHand.contains(card)) {
-            emit send("ERROR;Can't give what you don't have");
+            send("ERROR;Can't give what you don't have");
             return;
         }
         emit give_card(card);
         mActionPending = false;
-        emit send("WAIT;");
         return;
     }
 }
 
-void SocketPlayer::announcements(QString message, QString command) {
-    emit send(command + ";" + message);
+void SocketPlayer::send(QString data) {
+    QByteArray utfData = data.toUtf8();
+    // qDebug() << mName << " SENDING: " << utfData;
+    mSocket->write(utfData.append(MSG_DELIMITER_UTF8));
 }
 
-void SocketPlayer::whispers(IPlayer &target, QString message, QString command) {
+void SocketPlayer::recieveAnnouncement(QString message, QString command) {
+    send(command + ";" + message);
+}
+
+void SocketPlayer::recieveWhisper(IPlayer &target, QString message, QString command) {
     if (this == &target) {
-        emit send(command + ";" + message);
+        send(command + ";" + message);
     }
 }
 

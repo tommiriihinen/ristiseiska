@@ -32,7 +32,7 @@ public:
     GameSettings getSettings() const {return mSettings;}
     std::vector<pIPlayer> getPlayers() {return this->players;}
     pIPlayer getCurrentPlayer() {return this->current_player;}
-    pIPlayer getLastPlayer() {return this->last_player;}
+    pIPlayer getLastPlayingPlayer() {return this->last_playing_player;}
     Board* getBoard() {return &this->mBoard;}
     int getTurn() {return mTurn;}
     Deck getDealersDeck() {return mDealer.getDeck();}
@@ -63,7 +63,8 @@ private:
     GameSettings mSettings;
 
     std::vector<pIPlayer> players;
-    pIPlayer current_player, last_player;
+    pIPlayer current_player, last_playing_player;
+    int mConsecutivePassCounter { 0 };
 
     void next_turn();
     void clean();

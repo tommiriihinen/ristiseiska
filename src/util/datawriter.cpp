@@ -152,8 +152,9 @@ void DataWriter::listenPlay(const Card card, bool continues) {
 }
 
 void DataWriter::listenGive(const Card card) {
-    IPlayer* p = game->getLastPlayer().get();
-    write("G " + mPlayerIDs[p] + " " + card.id(true) + ";");
+    IPlayer* giver = game->getLastPlayingPlayer().get();
+    IPlayer* taker = game->getCurrentPlayer().get();
+    write("G " + mPlayerIDs[giver] + mPlayerIDs[taker] + " " + card.id(true) + ";");
 }
 
 void DataWriter::listenPass() {

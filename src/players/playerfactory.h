@@ -12,6 +12,7 @@
 #include "randomplayer.h"
 #include "socketplayer.h"
 
+enum class SocketPlayerStatus {not_connected, naming}; // -> connected and off the map
 
 class PlayerFactory : public QObject
 {
@@ -26,10 +27,16 @@ signals:
     void allPlayersReady();
 
 public slots:
+    void connectSocketPlayer();
+    void socketPlayerReady(SocketPlayer* readyPlayer);
 
 private:
-    Server* server;
+    QTcpServer *mServer = nullptr;
+
+    QMap<SocketPlayer*, SocketPlayerStatus> mSocketPlayerStatusMap;
+
     QString mBenchmarkingModel = "";
+
 };
 
 #endif // PLAYERFACTORY_H

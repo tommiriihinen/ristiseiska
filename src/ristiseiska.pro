@@ -20,8 +20,6 @@ SOURCES += main.cpp \
     players/playerfactory.cpp \
     players/randomplayer.cpp \
     players/socketplayer.cpp \
-    networking/server.cpp \
-    networking/connection.cpp \
     ui/ui.cpp \
     util/benchmarker.cpp \
     util/datawriter.cpp \
@@ -44,8 +42,6 @@ HEADERS += application.h \
     players/playerfactory.h \
     players/randomplayer.h \
     players/socketplayer.h \
-    networking/server.h \
-    networking/connection.h \
     ui/ui.h \
     util/benchmarker.h \
     util/datawriter.h \
@@ -70,6 +66,11 @@ win32 {
 
 QMAKE_EXTRA_TARGETS += copyfiles
 POST_TARGETDEPS += copyfiles
+
+
+CONFIG(release, debug|release): DEFINES += QT_NO_DEBUG_OUTPUT
+CONFIG(release, debug|release): DEFINES += QT_NO_INFO_OUTPUT
+CONFIG(release, debug|release): DEFINES += QT_NO_WARNING_OUTPUT
 
 # Use gprof profiler
 QMAKE_CXXFLAGS_DEBUG += -pg

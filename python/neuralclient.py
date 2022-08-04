@@ -5,6 +5,7 @@ import socket
 import sys
 import codecs
 import logging
+import logging.handlers
 from timeit import default_timer as timer
 import argparse
 
@@ -34,8 +35,7 @@ except (ValueError, NotImplementedError) as exc:
 """
 
 np.set_printoptions(linewidth=80, precision=3)
-logging.basicConfig(level=logging.INFO,
-                    format="%(levelname)s: %(message)s")
+logging.basicConfig(format="%(levelname)s: %(message)s")
 
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
@@ -203,20 +203,45 @@ class NeuralPlayer:
         self.hand = np.zeros(52)
 
     def play(self, table, options):
-        return self.act(1, table, options)
 
-    def give(self, table):
-        return self.act(0, table, self.hand)
-
-    def act(self, action: int, table: np.ndarray, options: np.ndarray):
-
-        # Pass of nothing fits
+        # Pass if nothing fits.
         if np.all(options == 0):
             logging.info("Passing")
-            return 'P'
+            return 'P;'
 
-        continues = False
+        # If can end, end fast.
+        if np.array_equal(options, self.hand):
+            card_ids = np.flatnonzero(options)
+            if len(card_ids) == 1:
+                # sweet victory
+                return f"{debinarize_card(card_ids[0])};0"
+            for card_id in card_ids:
+                if debinarize_card(card_id)[1] in ['K', 'A']:
+                    logging.info(f"QUICK END")
+                    self.hand[card_id] = 0
+                    table[card_id] = 1
+                    return f"{debinarize_card(card_id)};1"
 
+        # Consult the model
+        card_id = self.act(1, table, options)
+
+        self.hand[card_id] = 0
+        table[card_id] = 1
+
+        card = debinarize_card(card_id)
+        logging.info(f"Playing: {card}")
+        return f"{card};0"
+
+    def give(self, table):
+        card_id = self.act(0, table, self.hand)
+
+        self.hand[card_id] = 0
+
+        card = debinarize_card(card_id)
+        logging.info(f"Playing: {card}")
+        return f"{card};"
+
+    def act(self, action: int, table: np.ndarray, options: np.ndarray):
         # Construct model input
         model_input = np.concatenate((action, self.hand, table.flatten()), axis=None)
         model_input = model_input.reshape((1, 105))
@@ -235,24 +260,7 @@ class NeuralPlayer:
         realization[realization == 0] = -np.inf
         decision = np.argmax(realization)
 
-        # If everything fits, end game. Wasteful here, needs refactoring
-        if np.array_equal(options, self.hand):
-            for i in np.flatnonzero(options):
-                if debinarize_card(i)[1] in ['K', 'A']:
-                    decision = i
-                    continues = True
-                    logging.critical(f"QUICK END: \n"
-                                     f"OPTIONS: {debinarize_array(options)} \n"
-                                     f"HAND:    {debinarize_array(self.hand)}")
-                    break
-
-        self.hand[decision] = 0
-        if action == 1:  # Card played
-            table[decision] = 1
-
-        card = debinarize_card(decision)
-        logging.info(f"Decision: {card}, continues: {continues}")
-        return f"{card};{str(int(continues))}"
+        return decision
 
 
 class NeuralClient:
@@ -288,7 +296,7 @@ class NeuralClient:
 
         logging.debug(f"received: {cmd}")
 
-        if cmd in ['WAIT']:
+        if cmd in ['WAIT', 'PROMPT', 'SETTINGS', 'END']:
             pass
 
         elif cmd == 'PLAY':
@@ -334,32 +342,26 @@ class NeuralClient:
             logging.info(content)
 
         elif cmd == 'ERROR':
-            logging.error(content)
-
-        elif cmd == "END":
-            pass
+            logging.critical(content)
 
         elif cmd == "KILL":
             os._exit()
 
         else:
-            logging.warning(f"UNCAUGHT MESSAGE: {message}")
+            logging.error(f"UNCAUGHT MESSAGE: {message}")
 
     def send(self, message):
         try:
             self.__tcp_socket.send((message + MSG_DELIMITER).encode('UTF-8'))
         except OSError as e:
-            logging.error(e)
-            logging.error(e.errno)
-            if e.errno == 10054:
-                os._exit()
+            os._exit()
 
 
 def main():
     print(f"Ristiseiska NeuralClient running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
 
     parser = argparse.ArgumentParser(description='Create ANN powered Ristiseiska Client')
-    output_level = parser.add_argument('-output', help="Output level", type=int, choices=[0, 1, 2], default=1)
+    output_level = parser.add_argument('-output', help="Output level", type=int, choices=[0, 1, 2], default=0)
     model_directory = parser.add_argument('-model', help="Model")
     args = parser.parse_args()
 

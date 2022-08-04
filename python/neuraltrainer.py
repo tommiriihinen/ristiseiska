@@ -125,7 +125,7 @@ def parse_game(game, training_inputs, training_outputs):
     turn_data = game['Actions'].split(";")
     for unit in turn_data[:-1]:
         contents = unit.split(" ")
-        player = int(contents[1])
+        player = int(contents[1][0])
         action = 1 if (contents[0] == 'P') else 0
         card = binarize_card_id(contents[2])
         hand = running_hands[player]
@@ -145,9 +145,9 @@ def parse_game(game, training_inputs, training_outputs):
             running_hands[player][card] = 0
             running_table[card] = 1
         else:  # is give
-            last_player = (player - 1) % players
+            taker = int(contents[1][1])
             running_hands[player][card] = 0
-            running_hands[last_player][card] = 1
+            running_hands[taker][card] = 1
 
 
 def decomment(csvfile):
@@ -207,7 +207,7 @@ def main():
             print(f" {filename.name}")
 
     # Ask for training parameters
-    datafiles = pyip.inputStr("Datafile: ", default=DEFAULT_DATA, limit=1).split()
+    datafiles = pyip.inputStr("Datafiles: ", default=DEFAULT_DATA, limit=1).split()
     savefile = pyip.inputStr("Savefile: ", default=DEFAULT_SAVE, limit=1)
     epochs = pyip.inputInt("Epochs: ", default=DEFAULT_EPOCHS, limit=1)
     batch_size = pyip.inputInt("Batch size: ", default=DEFAULT_BATCH, limit=1)
@@ -257,7 +257,7 @@ def main():
     log.info(f"Name: {savefile}")
     model.summary(print_fn=log.info)
 
-    log.info(f"Datafile: {datafile}")
+    log.info(f"Datafiles: {datafiles}")
     log.info(f"Parameters:")
     log.info(f"  Epochs: {epochs}")
     log.info(f"  Batch size: {batch_size}")
