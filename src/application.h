@@ -2,6 +2,7 @@
 #define APPLICATION_H
 
 #include <QObject>
+#include <QCoreApplication>
 #include "game_core/game.h"
 #include "players/player.h"
 #include "players/playerfactory.h"

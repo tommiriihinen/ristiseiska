@@ -1,7 +1,7 @@
 #include "game_core/game.h"
 
 Game::Game(QObject *parent)
-    : mBoard(), mDealer(), mSettings() {
+    : QObject(parent), mBoard(), mDealer(), mSettings() {
     Deck stariting_deck;
     stariting_deck.fill();
     mDealer.addCards(stariting_deck);
@@ -56,6 +56,13 @@ void Game::clearPlayers() {
     }
 }
 
+void Game::setSettings(GameSettings gs) {
+    mSettings = gs;
+    if (gs.game_quality == GameQuality::pretty) emit announce("SHOW:1","SETTINGS");
+    if (gs.game_quality == GameQuality::fast) emit announce("SHOW:0","SETTINGS");
+
+}
+
 void Game::start() {
 
     assert(!mRunning);
@@ -64,18 +71,20 @@ void Game::start() {
 
     mDealer.deal();
 
-    emit announce("------------------------Instructions:-------------------------\n"
-                  "On your turn you may play a card in accordance to the rules of\n"
-                  "ristiseiska  or  pass  if and only if you are unable to do so.\n"
-                  "\n"
-                  "Cards  are  played  by  typing  the first  letter of the suit:\n"
-                  "\n"
-                  "            [C]lubs/[D]iamonds/[H]earts/[S]pades\n"
-                  "\n"
-                  "followed by the rank of the card. (10 is replaced by X)\n"
-                  "Example: C7\n"
-                  "The turn is passed by typing [P]");
-    emit announce("----------------------The Seven of Clubs----------------------");
+    if (mSettings.game_quality == GameQuality::pretty) {
+        emit announce("------------------------Instructions:-------------------------\n"
+                      "On your turn you may play a card in accordance to the rules of\n"
+                      "ristiseiska  or  pass  if and only if you are unable to do so.\n"
+                      "\n"
+                      "Cards  are  played  by  typing  the first  letter of the suit:\n"
+                      "\n"
+                      "            [C]lubs/[D]iamonds/[H]earts/[S]pades\n"
+                      "\n"
+                      "followed by the rank of the card. (10 is replaced by X)\n"
+                      "Example: C7\n"
+                      "The turn is passed by typing [P]");
+        emit announce("----------------------The Seven of Clubs----------------------");
+    }
 
     mRunning = true;
     emit started();
@@ -92,7 +101,9 @@ void Game::start() {
 }
 
 void Game::clean() {
-    emit announce("----------------------the seven of clubs----------------------");
+    if (mSettings.game_quality == GameQuality::pretty) {
+        emit announce("----------------------the seven of clubs----------------------");
+    }
 
     mTurn = 0;
 
@@ -130,13 +141,12 @@ void Game::play_card(const Card &card, const bool continues) {
     mBoard.playCard(card, *current_player->getDeck());
 
     emit announce(card.id(), "CARD_PLAYED");
-    emit announce(mBoard.toString());
-    emit announce(current_player->getName()
-                  + " played "
-                  + card.id()
-                  + " and has "
-                  + QString::number(current_player->getDeck()->size())
-                  + " cards");
+    if (mSettings.game_quality == GameQuality::pretty) {
+        emit announce(mBoard.toString());
+        emit announce(current_player->getName() + " played "
+                      + card.id() + " and has "
+                      + QString::number(current_player->getDeck()->size()) + " cards");
+    }
 
     if (!continues) next_turn();
 
@@ -144,7 +154,9 @@ void Game::play_card(const Card &card, const bool continues) {
         if ((card.getRank() == ace or card.getRank() == king)                    // is possible to continue
                 and current_player->getDeck()->size() > 0                        // hand is not empty
                 and !findOptions(*current_player->getDeck(), mBoard).empty()) {  // can play afterwards
-            emit announce(current_player->getName() + " will continue");
+            if (mSettings.game_quality == GameQuality::pretty) {
+                emit announce(current_player->getName() + " will continue");
+            }
             emit take_action(*current_player, play);
 
         } else {
@@ -156,16 +168,21 @@ void Game::play_card(const Card &card, const bool continues) {
 }
 
 void Game::give_card(const Card &card) {
-    emit announce(current_player->getName() + " took a card from " + last_player->getName());
     emit whisper(*current_player.get(), card.id(), "CARD_GIVEN");
-    emit whisper(*current_player.get(), last_player->getName() + " gave you " + card.id());
+
+    if (mSettings.game_quality == GameQuality::pretty) {
+        emit announce(current_player->getName() + " took a card from " + last_player->getName());
+        emit whisper(*current_player.get(), last_player->getName() + " gave you " + card.id());
+    }
 
     last_player->getDeck()->put(card, *current_player->getDeck());
     next_turn();
 }
 
 void Game::pass_turn() {
-    emit announce(current_player->getName() + " passed");
+    if (mSettings.game_quality == GameQuality::pretty) {
+        emit announce(current_player->getName() + " passed");
+    }
 
     // Passing before C7 is ok.
     if (mBoard.isEmpty()) {
@@ -191,17 +208,21 @@ void Game::next_turn() {
         this->last_player = current_player;
         this->current_player = players[(mTurn-1) % players.size()];
 
-        emit announce(current_player->getName() + "'s turn:");
+        if (mSettings.game_quality == GameQuality::pretty) {
+            emit announce(current_player->getName() + "'s turn:");
+        }
         emit announce(QString::number(playerIndex(current_player)), "TURN");
         emit take_action(*current_player.get(), play);
     } else {
         mRunning = false;
         clean();
-        emit announce(winner->getName() + " has won the game");
+        if (mSettings.game_quality == GameQuality::pretty) {
+            emit announce(winner->getName() + " has won the game");
+        }
         emit victory(*winner.get());
         for (auto player : players) {
-            if (player == winner) whisper(*player, "WIN", "END");
-            else whisper(*player, "LOSE", "END");
+            if (player == winner) emit whisper(*player, "WIN", "END");
+            else emit whisper(*player, "LOSE", "END");
         }
     }
 }
@@ -219,5 +240,6 @@ pIPlayer Game::check_win() {
 int Game::playerIndex(pIPlayer p) {
     return std::distance(players.begin(), std::find(players.begin(), players.end(), p));
 }
+
 
 

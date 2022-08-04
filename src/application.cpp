@@ -112,6 +112,7 @@ void Application::menu() {
             settings_routine(); // returns
 
         } else if (m == 'Q') {
+            QCoreApplication::instance()->quit();
             break;
         }
     }

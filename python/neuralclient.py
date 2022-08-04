@@ -4,20 +4,39 @@ import os
 import socket
 import sys
 import codecs
+import logging
+from timeit import default_timer as timer
 
 import numpy as np
 import tensorflow as tf
 import keras
 from keras import backend as K
 
+"""
+We are waiting for google to get their shit together with tensorflow.
+There is a dependency conflict with protobuf
+
+import googlecloudprofiler
+# Profiler initialization. It starts a daemon thread which continuously
+# collects and uploads profiles. Best done as early as possible.
+try:
+    # service and service_version can be automatically inferred when
+    # running on App Engine. project_id must be set if not running
+    # on GCP.
+    googlecloudprofiler.start(verbose=3)
+except (ValueError, NotImplementedError) as exc:
+    print(exc)  # Handle errors here
+"""
+
 np.set_printoptions(linewidth=80, precision=3)
+logging.basicConfig(level=logging.INFO,
+                    format="%(levelname)s: %(message)s")
 
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
 DIR = "models"
 nickname = "mestari-tikku"
 DEFAULT_FILE = ""
-DEBUG = True
 SHOW_GAME = True
 MAX_PLAYERS = 3
 
@@ -51,6 +70,8 @@ def binarize_card(card_id):
     else:
         rank = int(card_id[1])
     card_index = (suit * 13 + rank) - 1  # 0-51
+
+    logging.debug(f"binarized {card_id} to {card_index}")
     return card_index
 
 
@@ -80,7 +101,9 @@ def de_binarize_card(card_index):
         rank = 'K'
     else:
         rank = str(mod)
-    return suit + rank  # C-S A-K
+    card_id = suit + rank
+    logging.debug(f"debinarized {card_index} to {card_id}")
+    return card_id  # C-S A-K
 
 
 def normalize_id(id):
@@ -88,6 +111,7 @@ def normalize_id(id):
         return id + 1
     else:
         return id
+
 
 
 my_id = 0
@@ -113,11 +137,13 @@ def receive():
 
             parts = message.split(';')
             if len(parts) == 1:
-                print("ERRONEOUS INPUT:", message, ":", received)
+                logging.warning("ERRONEOUS INPUT:", message, ":", received)
                 continue
 
             cmd = parts[0]
             content = parts[1]
+
+            logging.debug(f"recv: {cmd}")
 
             if cmd == 'PLAY':
                 action = 1
@@ -162,34 +188,40 @@ def receive():
                 action = 0
 
             elif cmd == 'OPTION':
-                if DEBUG:
-                    print("Option:", content)
+                logging.info(f"Option: {content}")
                 options[binarize_card(content)] = 1
 
             elif cmd == 'NICK':
                 send(nickname)
 
             elif cmd == 'MSG':
-                if SHOW_GAME:
-                    print(content)
+                logging.info(content)
+
+            elif cmd == 'SETTINGS':
+                name, value = content.split(":")
+                if name == 'SHOW':
+                    if int(value):
+                        logging.warning("Setting logger to show info")
+                        logging.getLogger().setLevel(logging.INFO)
+                    else:
+                        logging.warning("Setting logger to hide info")
+                        logging.getLogger().setLevel(logging.WARNING)
 
             elif cmd == "END":
                 pass
 
             else:
-                print(message)
+                logging.warning(f"UNCAUGHT MESSAGE: {message}")
 
 
 def send(message):
-
-    #         print("Connection lost. Closing client")
-    #         client.close()
-    # os._exit(1)
     message += "*"
     try:
         client.send(message.encode('UTF-8'))
-    except socket.error as e:
-        print(e)
+    except OSError as e:
+        logging.error(e)
+        if e.errno == 10054:
+            os._exit()
 
 
 def decide():
@@ -197,7 +229,7 @@ def decide():
 
     # Pass of nothing fits
     if np.all(options == 0):
-        print("Passing", options)
+        logging.info("Passing")
         return 'P'
 
     continues = False
@@ -205,17 +237,16 @@ def decide():
     # Construct model input
     model_input = np.concatenate((action, hand, table.flatten()), axis=None)
     model_input = model_input.reshape((1, 105))
-    # print("Model input:\n", model_input)
     # Decide
-    model_output = model(model_input)
-    if DEBUG:
-        print("Model output:\n", model_output)
-        print(model_output.dtype)
+    model_output = model.predict_single(model_input)
+
+    has = np.multiply(model_output, hand).flatten()
+    logging.info(f"Hand scrore: {np.sum(has):.2f}")
+    logging.info(f"Want's to play:  {debinarize_array(has)}")
     # Realize
-    # print("Options:", options)
     realization = np.multiply(model_output, options)
-    if DEBUG:
-        print("Realization:\n", realization)
+    logging.info(f"Can play:        {debinarize_array(realization)}")
+
     realization[realization == 0] = -np.inf
     decision = np.argmax(realization)
 
@@ -233,25 +264,72 @@ def decide():
         table[decision] = 1
     # Apply to world
     card = de_binarize_card(decision)
-    if DEBUG:
-        print("Decision", card)
+    logging.info(f"Decision: {card}, continues: {continues}")
 
     return card + ";" + str(int(continues))
 
 
+def debinarize_array(array: np.ndarray):
+    array = array.flatten()
+    return (" ".join(map(lambda card_index: de_binarize_card(card_index[0]),
+                         sorted(np.argwhere(array),
+                                key=lambda idx: array[idx]))))
+
+
+class LiteModel:
+
+    @classmethod
+    def from_file(cls, model_path):
+        return LiteModel(tf.lite.Interpreter(model_path=model_path))
+
+    @classmethod
+    def from_keras_model(cls, kmodel):
+        converter = tf.lite.TFLiteConverter.from_keras_model(kmodel)
+        tflite_model = converter.convert()
+        return LiteModel(tf.lite.Interpreter(model_content=tflite_model))
+
+    def __init__(self, interpreter):
+        self.interpreter = interpreter
+        self.interpreter.allocate_tensors()
+        input_det = self.interpreter.get_input_details()[0]
+        output_det = self.interpreter.get_output_details()[0]
+        self.input_index = input_det["index"]
+        self.output_index = output_det["index"]
+        self.input_shape = input_det["shape"]
+        self.output_shape = output_det["shape"]
+        self.input_dtype = input_det["dtype"]
+        self.output_dtype = output_det["dtype"]
+
+    def predict(self, inp):
+        inp = inp.astype(self.input_dtype)
+        count = inp.shape[0]
+        out = np.zeros((count, self.output_shape[1]), dtype=self.output_dtype)
+        for i in range(count):
+            self.interpreter.set_tensor(self.input_index, inp[i:i + 1])
+            self.interpreter.invoke()
+            out[i] = self.interpreter.get_tensor(self.output_index)[0]
+        return out
+
+    def predict_single(self, inp: np.ndarray):
+        """ Like predict(), but only for a single record. The input data can be a Python list. """
+        inp = inp.astype(self.input_dtype)
+        self.interpreter.set_tensor(self.input_index, inp)
+        self.interpreter.invoke()
+        out = self.interpreter.get_tensor(self.output_index)
+        return out[0]
+
+
 def load_model():
     global nickname
-    if DEFAULT_FILE:
-        model_path = DIR + "/" + DEFAULT_FILE
-    else:
-        print("Directory " + DIR + " contents:")
-        for filename in os.scandir(DIR):
-            if not filename.is_file():
-                print(f" {filename.name}")
-        model_directory = input("Which model to use: ")
-        nickname = model_directory
-        model_path = DIR + "/" + model_directory
-        print("Loading " + model_path)
+    print("Directory " + DIR + " contents:")
+    for filename in os.scandir(DIR):
+        if not filename.is_file():
+            print(f" {filename.name}")
+    model_directory = input("Which model to use: ")
+    nickname = model_directory
+    model_path = DIR + "/" + model_directory
+
+    print("Loading " + model_path)
 
     def agreeableness(y_true, y_pred):
         if K.sum(y_true) == 1:
@@ -267,10 +345,21 @@ def load_model():
 
     custom_objects = {"squared_error_masked": squared_error_masked,
                       "agreeableness": agreeableness}
+    # Load model
     with keras.utils.custom_object_scope(custom_objects):
-        model = tf.keras.models.load_model(model_path)
-    model.summary()
-    return model
+        model_keras = tf.keras.models.load_model(model_path)
+    model_keras.summary()
+
+    print("Converting to a TensorFlow Lite model")
+    start_time = timer()
+    lite_model = LiteModel.from_keras_model(model_keras)
+    print(f'conversion time: {timer() - start_time:.6f} seconds')
+
+    # Converting a tf.Keras model to a TensorFlow Lite model.
+    converter = tf.lite.TFLiteConverter.from_keras_model(model_keras)
+    tflite_model = converter.convert()
+
+    return lite_model
 
 
 def main():
@@ -280,11 +369,8 @@ def main():
     client.connect(('127.0.0.1', 55555))
 
     model = load_model()
-
+    # Start main loop
     receive()
-    # Starting Threads For Listening And Writing
-    # receive_thread = threading.Thread(target=receive)
-    # receive_thread.start()
 
 
 if __name__ == "__main__":

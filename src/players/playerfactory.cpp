@@ -25,9 +25,9 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
         server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
-        std::string title = "CandyClient";
+        std::string title = "\"CandyClient\"";
         std::string location = QCoreApplication::applicationDirPath().toStdString();
-        std::string command = "start \"" + title + "\" python " + location + "/candyclient.py";
+        std::string command = "start " + title + " python " + location + "/candyclient.py";
         system(command.c_str());
     }
     for (int c = 1; c <= neuralplrs; c++) {
@@ -36,12 +36,20 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
 
         server->queueSocketPlayerProduction(player.get());
         // When all socket players are ready tell game that players are ready.
-        std::string title = "NeuralClient";
-        std::string location = "cd " + QCoreApplication::applicationDirPath().toStdString() + " & ";
-        std::string conda  = "C:/ProgramData/Miniconda3/Scripts/activate.bat & conda activate tf & ";
-        std::string python = "C:/ProgramData/Miniconda3/python.exe -m pdb -c continue "; //
-        std::string script = "neuralclient.py";
-        std::string command = "start \"" + title + "\" cmd /c \"" + location + conda + python + script + "\"";
+        std::string title = "\"NeuralClient\"";
+        std::string navigate = "cd " + QCoreApplication::applicationDirPath().toStdString();
+        std::string activate_env  = "C:/ProgramData/Miniconda3/Scripts/activate.bat & conda activate tf";
+        std::string python = "C:/ProgramData/Miniconda3/python.exe "; //
+
+        std::string args = "";
+        #ifdef QT_DEBUG
+            args = "-m pdb -c continue ";
+        #endif
+        std::string file = "neuralclient.py";
+        std::string command = "start " + title + " cmd /k \"" + navigate + " & "
+                                                              + activate_env + " & "
+                                                              + "python " + args + file
+                                                              + "\"";
         system(command.c_str());
     }
 

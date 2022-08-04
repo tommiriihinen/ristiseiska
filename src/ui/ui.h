@@ -13,7 +13,7 @@ class UI : public QObject
 {
     Q_OBJECT
 public:
-    UI(QObject* parent = nullptr) {}
+    UI(QObject* parent = nullptr) :QObject(parent) {}
 
     void setGame(Game* game);
     void setShow(bool show) {mShow = show;}

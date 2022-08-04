@@ -28,12 +28,11 @@ DEFAULT_SAVE = "test"
 logging.basicConfig(level=logging.INFO)
 # logging.basicConfig(filename="logs/logs.txt", level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
 
-ALLOWED_PLAYERS = [3]
-
 DEFAULT_EPOCHS = 50
 DEFAULT_BATCH = 10
 LEARNING_RATE = 0.001
 VALIDATION_SPLIT = 0.2
+PATIENCE = 3
 
 
 def train(features, labels, epochs, batch_size):
@@ -41,18 +40,13 @@ def train(features, labels, epochs, batch_size):
     # Create model
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
-        tf.keras.layers.Dense(384, activation='elu'),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(384, activation='elu'),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(256, activation='elu'),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(128, activation='elu'),
-        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(105, activation='elu'),
+        tf.keras.layers.Dense(80, activation='elu'),
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
     opt = keras.optimizers.Adam(learning_rate=LEARNING_RATE)
+
     model.compile(optimizer=opt,
                   loss=squared_error_masked,
                   metrics=agreeableness)
@@ -64,7 +58,7 @@ def train(features, labels, epochs, batch_size):
                                                      verbose=1)
 
     earlystopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
-                                                     mode="min", patience=4,
+                                                     mode="min", patience=PATIENCE,
                                                      restore_best_weights=True)
 
     # Training
@@ -105,18 +99,12 @@ def binarize_card_id(card_id):
     return (suit * 13 + rank) - 1  # 0-51
 
 
-# parts      [0]        [1]               [2]          [3]
-# game_text: (n players);n*(startingHand,);m*(action,);(winner)
-
-def parse_game(game, accepted_sizes, training_inputs, training_outputs):
+def parse_game(game, training_inputs, training_outputs):
     winning_examples = 0
     losing_examples = 0
 
     players = int(game['Player Count'])
     winner = int(game['Winner'])
-
-    if players not in accepted_sizes:
-        return
 
     # Binarize starting hands
     starting_hands = np.zeros((players, 52), dtype="b")
@@ -129,71 +117,11 @@ def parse_game(game, accepted_sizes, training_inputs, training_outputs):
         for card_id in card_ids:
             starting_hands[player][binarize_card_id(card_id)] = 1
 
-    # starting hands
+    # Init running hands and table
     running_hands = starting_hands.copy()
-    # empty table
-    running_tables = np.zeros((len(ALLOWED_PLAYERS) + 2, 52), dtype="b")
-
-    # start parsing
-    turn_data = game['Actions'].split(";")
-    for unit in turn_data[:-1]:
-        contents = unit.split(" ")
-        player = int(contents[1])
-        action = 1 if (contents[0] == 'P') else 0
-        card = binarize_card_id(contents[2])
-        hand = running_hands[player]
-
-        inputs = np.concatenate((action, hand, running_tables.flatten()), dtype="b", axis=None)
-        outputs = np.zeros(52, dtype="b")
-
-        if winner == player:
-            outputs[card] = 1
-            training_inputs.append(inputs)
-            training_outputs.append(outputs)
-            winning_examples += 1
-        else:
-            if winning_examples > losing_examples:
-                outputs[card] = -1
-                training_inputs.append(inputs)
-                training_outputs.append(outputs)
-                losing_examples += 1
-
-        if action:  # is play
-            running_hands[player][card] = 0
-            running_tables[player][card] = 1
-        else:  # is give
-            last_player = (player - 1) % players
-            running_hands[player][card] = 0
-            running_hands[last_player][card] = 1
-
-
-def parse_game2(game, accepted_sizes, training_inputs, training_outputs):
-    winning_examples = 0
-    losing_examples = 0
-
-    players = int(game['Player Count'])
-    winner = int(game['Winner'])
-
-    if players not in accepted_sizes:
-        return
-
-    # Binarize starting hands
-    starting_hands = np.zeros((players, 52), dtype="b")
-    hand_data = game['Starting Hands'].split(";")  # P1 C2 C7 DA ... ,P2 CA C3 D4 ...
-
-    for player in range(0, players):
-        card_ids = hand_data[player].strip().split(" ")  # P1 C2 C7 DA ...
-        player_id = card_ids.pop(0)  # P[1]
-
-        for card_id in card_ids:
-            starting_hands[player][binarize_card_id(card_id)] = 1
-
-    # starting hands
-    running_hands = starting_hands.copy()
-    # empty table
     running_table = np.zeros(52, dtype="b")
 
-    # start parsing
+    # Start parsing
     turn_data = game['Actions'].split(";")
     for unit in turn_data[:-1]:
         contents = unit.split(" ")
@@ -207,15 +135,11 @@ def parse_game2(game, accepted_sizes, training_inputs, training_outputs):
 
         if winner == player:
             outputs[card] = 1
-            training_inputs.append(inputs)
-            training_outputs.append(outputs)
-            winning_examples += 1
         else:
-            if winning_examples > losing_examples:
-                outputs[card] = -1
-                training_inputs.append(inputs)
-                training_outputs.append(outputs)
-                losing_examples += 1
+            outputs[card] = -1
+
+        training_inputs.append(inputs)
+        training_outputs.append(outputs)
 
         if action:  # is play
             running_hands[player][card] = 0
@@ -233,8 +157,6 @@ def decomment(csvfile):
 
 
 def load_data(filename):
-    allowed_players = ALLOWED_PLAYERS
-
     features = []
     labels = []
 
@@ -249,7 +171,7 @@ def load_data(filename):
     with open(path) as csvfile:
         reader = csv.DictReader(decomment(csvfile))
         for i, row in enumerate(tqdm(reader, total=line_count)):
-            parse_game2(row, allowed_players, features, labels)
+            parse_game(row, features, labels)
 
     return np.array(features, dtype="b"), np.array(labels, dtype="b")
 
@@ -290,6 +212,7 @@ def main():
     batch_size = pyip.inputInt("Batch size: ", default=DEFAULT_BATCH, limit=1)
 
     # Parse input data
+    print("Parsing data:")
     parsing_start_time = time.process_time()
     training_features, training_labels = load_data(datafile)
     parsing_end_time = time.process_time()
@@ -316,8 +239,15 @@ def main():
     model.save(save_path)
     print(f"Model saved in '{SAVE_DIR}' as '{savefile}'")
 
+    # Make directory for logs in model directory
+    model_logs_dir = "/".join([SAVE_DIR, savefile, LOGS_DIR])
+    try:
+        os.mkdir(model_logs_dir)
+    except OSError:
+        pass
+
     # Logging to file with <savefile>.txt as name
-    logs_path = "/".join([LOGS_DIR, savefile + ".txt"])
+    logs_path = "/".join([model_logs_dir, savefile + ".txt"])
     model_logger_fhandler = logging.FileHandler(logs_path, mode="w")
     model_logger_fhandler.setLevel(logging.INFO)
     log.addHandler(model_logger_fhandler)
@@ -332,20 +262,17 @@ def main():
     log.info(f"  Batch size: {batch_size}")
     log.info(f"  Validation split: {VALIDATION_SPLIT}")
     log.info(f"  Learning rate: {LEARNING_RATE}")
+    log.info(f"  Patience: {PATIENCE}")
     log.info(f"Time elapsed:")
     log.info(f"  Parsing:  {time.strftime('%Hh%Mm%Ss', time.gmtime(parsing_end_time - parsing_start_time))}")
     log.info(f"  Training: {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - training_start_time))}")
-    log.info(f"Training history:")
-
-    for field, data in history.history.items():
-        log.info(f"  {field}:")
-        for line in data:
-            log.info(f"    {line:.4f}")
 
     model_logger_fhandler.close()
     logging.shutdown()
 
-    # Plot history
+    # Plot training history
+    agreeableness_plot_path = "/".join([model_logs_dir, "agreeableness.png"])
+    loss_plot_path = "/".join([model_logs_dir, "loss.png"])
     # summarize history for agreeableness
     plt.plot(history.history['agreeableness'])
     plt.plot(history.history['val_agreeableness'])
@@ -353,6 +280,7 @@ def main():
     plt.ylabel('agreeableness')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig(agreeableness_plot_path)
     plt.show()
     # summarize history for loss
     plt.plot(history.history['loss'])
@@ -361,6 +289,7 @@ def main():
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig(loss_plot_path)
     plt.show()
 
 

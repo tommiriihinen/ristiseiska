@@ -8,9 +8,11 @@
 //#include "util/datawriter.h"
 
 enum class SeatChange {static_seats, roundrobin, random};
+enum class GameQuality {pretty, fast};
 
 struct GameSettings {
     SeatChange seat_change { SeatChange::random };
+    GameQuality game_quality { GameQuality::pretty };
 };
 
 // Responsible for moving cards
@@ -25,7 +27,7 @@ public:
     void addPlayers(std::vector<pIPlayer> players);
     void clearPlayers();
 
-    void setSettings(GameSettings gs) {mSettings = gs; }
+    void setSettings(GameSettings gs);
 
     GameSettings getSettings() const {return mSettings;}
     std::vector<pIPlayer> getPlayers() {return this->players;}

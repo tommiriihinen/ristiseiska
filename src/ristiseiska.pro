@@ -64,8 +64,14 @@ win32 {
     copyfiles.commands += @echo NOW COPYING PYTHON FILES &
     copyfiles.commands += @call copy ..\\$${TARGET}\\..\\python\\ $${DESTDIR}\\ &
     copyfiles.commands += @echo NOW COPYING MODELS &
-    copyfiles.commands += @call xcopy ..\\$${TARGET}\\..\\python\\models $${DESTDIR}\\models /E /Y
+    copyfiles.commands += @call dir ..\\$${TARGET}\\..\\python &
+    copyfiles.commands += @call xcopy ..\\$${TARGET}\\..\\python\\models\\ $${DESTDIR}\\models\\ /E /Y
 }
 
 QMAKE_EXTRA_TARGETS += copyfiles
 POST_TARGETDEPS += copyfiles
+
+QMAKE_CFLAGS+=-pg
+QMAKE_CXXFLAGS+=-pg
+QMAKE_LFLAGS+=-pg
+

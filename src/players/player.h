@@ -14,7 +14,7 @@ class IPlayer : public QObject
 {
     Q_OBJECT
 public:
-    IPlayer(QObject *parent = nullptr) {}
+    IPlayer(QObject *parent = nullptr) :QObject{parent} {}
 
     void setName(QString name) {mName = name;}
     void setBoard(Board &board) {this->board = &board;}

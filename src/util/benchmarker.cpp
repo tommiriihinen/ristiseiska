@@ -96,6 +96,7 @@ void Benchmarker::startBenchmark(pIPlayer player, int benchmarkTarget, PlayerTyp
 
     GameSettings gs;
     gs.seat_change = SeatChange::random;
+    gs.game_quality = GameQuality::fast;
     game->setSettings(gs);
 
     mCurrentOpponent = mOpponents[0];
