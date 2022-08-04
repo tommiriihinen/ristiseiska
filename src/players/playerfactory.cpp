@@ -7,7 +7,7 @@ PlayerFactory::PlayerFactory(QObject *parent)
     connect(server, &Server::allSocketPlayersReady, this, &PlayerFactory::allPlayersReady);
 }
 
-void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
+void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, bool benchmarking) {
     int clientplrs = 0, comptrplrs = 0, randomplrs = 0, neuralplrs = 0;
     if (order.count(PlayerType::client)) clientplrs = order[PlayerType::client];
     if (order.count(PlayerType::comptr)) comptrplrs = order[PlayerType::comptr];
@@ -41,14 +41,18 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
         std::string activate_env  = "C:/ProgramData/Miniconda3/Scripts/activate.bat & conda activate tf";
         std::string python = "C:/ProgramData/Miniconda3/python.exe "; //
 
-        std::string args = "";
+        std::string pythonargs = "";
         #ifdef QT_DEBUG
-            args = "-m pdb -c continue ";
+            pythonargs += "-m pdb -c continue ";
         #endif
+        std::string args = "";
+        if (benchmarking) args += " -output 0 -model " + mBenchmarkingModel.toStdString() + " ";
+
         std::string file = "neuralclient.py";
         std::string command = "start " + title + " cmd /c \"" + navigate + " & "
                                                               + activate_env + " & "
-                                                              + "python " + args + file
+                                                              + "python " + pythonargs
+                                                              + file + args
                                                               + "\"";
         system(command.c_str());
     }
@@ -74,6 +78,8 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game) {
     if (clientplrs + neuralplrs == 0) {
         emit allPlayersReady();
     } else {
-        server->StartServer();
+        if (!server->isListening()) {
+            server->StartServer();
+        }
     }
 }

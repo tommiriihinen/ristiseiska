@@ -115,7 +115,7 @@ void Benchmarker::startSpecificBenchmark(PlayerType oppt, int opponents) {
 
     std::map<PlayerType, int> order;
     order[oppt] = opponents;
-    pf->createPlayers(order, *game); // starts when ready
+    pf->createPlayers(order, *game, true); // starts when ready
 }
 
 

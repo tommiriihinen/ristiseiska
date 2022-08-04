@@ -58,6 +58,7 @@ void Connection::createSocket() {
 void Connection::destroySocket() {
     qDebug() << "Destroying socket";
     socket->disconnect();
+    send("KILL;");
     socket->deleteLater();
     this->exit();
 }

@@ -241,6 +241,9 @@ class NeuralPlayer:
                 if debinarize_card(i)[1] in ['K', 'A']:
                     decision = i
                     continues = True
+                    logging.critical(f"QUICK END: \n"
+                                     f"OPTIONS: {debinarize_array(options)} \n"
+                                     f"HAND:    {debinarize_array(self.hand)}")
                     break
 
         self.hand[decision] = 0
@@ -330,18 +333,14 @@ class NeuralClient:
         elif cmd == 'MSG':
             logging.info(content)
 
-        elif cmd == 'SETTINGS':
-            name, value = content.split(":")
-            if name == 'SHOW':
-                if int(value):
-                    logging.warning("Setting logger to show info")
-                    logging.getLogger().setLevel(logging.INFO)
-                else:
-                    logging.warning("Setting logger to hide info")
-                    logging.getLogger().setLevel(logging.WARNING)
+        elif cmd == 'ERROR':
+            logging.error(content)
 
         elif cmd == "END":
             pass
+
+        elif cmd == "KILL":
+            os._exit()
 
         else:
             logging.warning(f"UNCAUGHT MESSAGE: {message}")
@@ -353,21 +352,35 @@ class NeuralClient:
             logging.error(e)
             logging.error(e.errno)
             if e.errno == 10054:
-                quit()
+                os._exit()
 
 
 def main():
     print(f"Ristiseiska NeuralClient running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
 
-    print("Directory " + DIR + " contents:")
-    for filename in os.scandir(DIR):
-        if not filename.is_file():
-            print(f" {filename.name}")
-    model_directory = input("Which model to use: ")
-    model_path = DIR + "/" + model_directory
+    parser = argparse.ArgumentParser(description='Create ANN powered Ristiseiska Client')
+    output_level = parser.add_argument('-output', help="Output level", type=int, choices=[0, 1, 2], default=1)
+    model_directory = parser.add_argument('-model', help="Model")
+    args = parser.parse_args()
 
-    print(os.path.abspath(model_directory))
+    output_level = args.output
+    if output_level == 0:
+        logging.getLogger().setLevel(logging.WARNING)
+    elif output_level == 1:
+        logging.getLogger().setLevel(logging.INFO)
+    elif output_level == 2:
+        logging.getLogger().setLevel(logging.DEBUG)
 
+    model_directory = args.model
+    if not model_directory:
+
+        print("Directory " + DIR + " contents:")
+        for filename in os.scandir(DIR):
+            if not filename.is_file():
+                print(f" {filename.name}")
+        model_directory = input("Which model to use: ")
+
+    model_path = DIR + "/" + str(model_directory)
     print("Loading " + model_path)
     model = LiteModel.from_keras_model_file(model_path)
 

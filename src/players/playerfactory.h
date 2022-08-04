@@ -19,7 +19,8 @@ class PlayerFactory : public QObject
 public:
     explicit PlayerFactory(QObject *parent = nullptr);
 
-    void createPlayers(std::map<PlayerType, int> order, Game &game);
+    void createPlayers(std::map<PlayerType, int> order, Game &game, bool benchmarking=false);
+    void setBenchmarkingModel(QString model) {mBenchmarkingModel = model;}
 
 signals:
     void allPlayersReady();
@@ -28,6 +29,7 @@ public slots:
 
 private:
     Server* server;
+    QString mBenchmarkingModel = "";
 };
 
 #endif // PLAYERFACTORY_H

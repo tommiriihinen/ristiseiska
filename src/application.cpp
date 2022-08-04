@@ -84,7 +84,7 @@ void Application::menu() {
 
         if (mDataWriter.isOpen()) saving = "S: Save file\n";
 
-        char m = Util::multipleChoicePrompt(header + single_game + auto_game + saving +
+        char m = Util::charPrompt(header + single_game + auto_game + saving +
                                             change_players + benchmarking + change_settings +
                                             quitting + footer);
         if (m == 'P') {
@@ -138,6 +138,11 @@ void Application::benchmark_routine() {
     opponents[0] = Util::playerTypePromt("Choose opponent 1:");
     opponents[1] = Util::playerTypePromt("Choose opponent 2:");
 
+    if (opponents[0] == PlayerType::neural or opponents[1] == PlayerType::neural) {
+        QString model = Util::stringPrompt("Which model to use:");
+        mPlayerFactory.setBenchmarkingModel(model);
+    }
+
     int maxOpponents = Util::numberPrompt("Maximum number of players in game (3-7)");
 
     std::cout << "Benchmarking: " << benchplayer->getName().toStdString() << "\n";
@@ -150,7 +155,7 @@ void Application::settings_routine() {
     std::cout << "---------Settings---------\n";
 
     while (browsing_settings) {
-        char r = Util::multipleChoicePrompt("S: Show UI\n"
+        char r = Util::charPrompt("S: Show UI\n"
                                             "M: Change machine behavour\n"
                                             "T: Change seating rotation\n"
                                             "D: Check dealers deck\n"
@@ -169,7 +174,7 @@ void Application::settings_routine() {
         }
 
         if (r == 'T') {
-            char t = Util::multipleChoicePrompt("\n"
+            char t = Util::charPrompt("\n"
                                                 "S: Random shuffle\n"
                                                 "R: Round-robin\n"
                                                 "O: Static order\n");

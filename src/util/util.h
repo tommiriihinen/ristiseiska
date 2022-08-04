@@ -14,7 +14,8 @@ public:
 public:
     static bool questionPrompt(QString prompt);
     static int numberPrompt(QString prompt);
-    static char multipleChoicePrompt(QString prompt);
+    static char charPrompt(QString prompt);
+    static QString stringPrompt(QString prompt);
     static PlayerType playerTypePromt(QString prompt);
 };
 

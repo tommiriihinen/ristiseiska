@@ -31,7 +31,7 @@ int Util::numberPrompt(QString prompt) {
     }
 }
 
-char Util::multipleChoicePrompt(QString prompt) {
+char Util::charPrompt(QString prompt) {
     std::cout << prompt.toStdString();
 
     std::string response;
@@ -41,6 +41,16 @@ char Util::multipleChoicePrompt(QString prompt) {
     char first_letter = response[0];
     first_letter = toupper(first_letter);
     return first_letter;
+}
+
+QString Util::stringPrompt(QString prompt) {
+    std::cout << prompt.toStdString();
+
+    std::string response;
+    while (response.size() < 1) {
+        std::cin >> response;
+    }
+    return QString::fromStdString(response);
 }
 
 PlayerType Util::playerTypePromt(QString prompt) {
