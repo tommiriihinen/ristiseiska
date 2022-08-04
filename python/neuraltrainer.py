@@ -156,22 +156,23 @@ def decomment(csvfile):
         if raw: yield raw
 
 
-def load_data(filename):
+def load_data(filenames):
     features = []
     labels = []
 
-    path = "/".join([DATA_DIR, filename])
+    for filename in filenames:
+        path = "/".join([DATA_DIR, filename])
 
-    # Find file length
-    line_count = -1
-    with open(path) as csvfile:
-        for _ in csv.reader(decomment(csvfile)):
-            line_count += 1
+        # Find file length
+        line_count = -1
+        with open(path) as csvfile:
+            for _ in csv.reader(decomment(csvfile)):
+                line_count += 1
 
-    with open(path) as csvfile:
-        reader = csv.DictReader(decomment(csvfile))
-        for i, row in enumerate(tqdm(reader, total=line_count)):
-            parse_game(row, features, labels)
+        with open(path) as csvfile:
+            reader = csv.DictReader(decomment(csvfile))
+            for i, row in enumerate(tqdm(reader, total=line_count)):
+                parse_game(row, features, labels)
 
     return np.array(features, dtype="b"), np.array(labels, dtype="b")
 
@@ -206,7 +207,7 @@ def main():
             print(f" {filename.name}")
 
     # Ask for training parameters
-    datafile = pyip.inputStr("Datafile: ", default=DEFAULT_DATA, limit=1)
+    datafiles = pyip.inputStr("Datafile: ", default=DEFAULT_DATA, limit=1).split()
     savefile = pyip.inputStr("Savefile: ", default=DEFAULT_SAVE, limit=1)
     epochs = pyip.inputInt("Epochs: ", default=DEFAULT_EPOCHS, limit=1)
     batch_size = pyip.inputInt("Batch size: ", default=DEFAULT_BATCH, limit=1)
@@ -214,7 +215,7 @@ def main():
     # Parse input data
     print("Parsing data:")
     parsing_start_time = time.process_time()
-    training_features, training_labels = load_data(datafile)
+    training_features, training_labels = load_data(datafiles)
     parsing_end_time = time.process_time()
 
     # Log input data
