@@ -74,10 +74,10 @@ class Serializer:
 
 class Parser:
 
-    def __init__(self, filepath):
+    def __init__(self, filepath=None):
         self.__filepath = filepath
-        self.__file = open(filepath, "rb+")
-        self.__file_size = os.path.getsize(self.__filepath)
+        if filepath:
+            self.__file_size = os.path.getsize(self.__filepath)
 
     def __len__(self):
         return self.__file_size // ROW_BYTES
@@ -92,17 +92,21 @@ class Parser:
 
         return s
 
-    def seek(self, idx):
-        self.__file.seek(idx * ROW_BYTES)
+    def parse_batch(self, idx, batch_size):
 
-    def parse_next(self):
-        arr = bitarray()
-        arr.fromfile(self.__file, ROW_BYTES)
+        x_batch = np.empty((batch_size, 105), dtype="b")
+        y_batch = np.empty((batch_size, 52), dtype="b")
 
-        x = extract(arr, **ML_PARSE['x'])
-        y = extract(arr, **ML_PARSE['y'])
+        with open(self.__filepath, "rb") as file:
 
-        return x, y
+            for i in range(0, batch_size):
+                arr = bitarray()
+                arr.fromfile(file, ROW_BYTES)
+
+                x_batch[i] = extract(arr, **ML_PARSE['x'])
+                y_batch[i] = extract(arr, **ML_PARSE['y'])
+
+        return x_batch, y_batch
 
     def get_file_size(self):
         return self.__file_size
