@@ -178,7 +178,7 @@ class NeuralTrainer:
         save_path = "/".join([SAVE_DIR, savefile])
         self.__model.save(save_path)
         print(f"Model saved in '{SAVE_DIR}' as '{savefile}'")
-        self.__create_histograms(self.__history)
+        self.__create_histograms()
 
 
 def main():
