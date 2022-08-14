@@ -69,6 +69,7 @@ class NeuralTrainer:
         self.__model = model
         self.__history = {'loss': [], 'agreeableness': [],
                           'val_loss': [], 'val_agreeableness': []}
+        self.__callbacks = []
 
         # Create necessary directories
         os.makedirs(f"{SAVE_DIR}/{name}", exist_ok=True)
@@ -108,6 +109,9 @@ class NeuralTrainer:
         plt.savefig(f"{self.__logs_dir}/loss.png")
         plt.close()
 
+    def add_callback(self, callback):
+        self.__callbacks.append(callback)
+
     def train(self,
               train_data_file="test.bin",
               val_data_file="test.bin",
@@ -144,23 +148,18 @@ class NeuralTrainer:
                              loss=squared_error_masked,
                              metrics=agreeableness)
 
-        # Training callbacks
-        checkpoint_path = "/".join([SAVE_DIR, "cp.ckpt"])
-        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                         save_weights_only=True,
-                                                         verbose=1)
-
         earlystopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                          mode="min",
                                                          patience=patience,
                                                          restore_best_weights=True)
+        self.__callbacks.append(earlystopping)
 
         # Training
         training_start_time = time.process_time()
         history = self.__model.fit(train_gen,
                                    validation_data=val_gen,
                                    epochs=epochs,
-                                   callbacks=[cp_callback, earlystopping],
+                                   callbacks=self.__callbacks,
                                    use_multiprocessing=True)
         training_end_time = time.process_time()
 
@@ -173,12 +172,11 @@ class NeuralTrainer:
                         f" - Training: {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - training_start_time))}\n"
                         f" - Parsing:  {time.strftime('%Hh%Mm%Ss', time.gmtime(train_gen.get_time_spent() + val_gen.get_time_spent()))}\n")
 
-    def save(self, savefile):
+    def save(self):
         # Save model
-        save_path = "/".join([SAVE_DIR, savefile])
-        self.__model.save(save_path)
-        print(f"Model saved in '{SAVE_DIR}' as '{savefile}'")
         self.__create_histograms()
+        self.__model.save(f"{SAVE_DIR}/{self.__name}")
+        print(f"Model saved in '{SAVE_DIR}' as '{self.__name}'")
 
 
 def main():
