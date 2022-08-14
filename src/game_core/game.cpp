@@ -187,6 +187,7 @@ void Game::give_card(const Card &card) {
 
 void Game::pass_turn() {
     mConsecutivePassCounter++;
+    last_playing_player = players[(mTurn-mConsecutivePassCounter) % players.size()];
 
     if (mSettings.game_quality == GameQuality::pretty) {
         emit announce(current_player->getName() + " passed");
@@ -213,11 +214,10 @@ void Game::next_turn() {
 
     if (winner == nullptr) {
         mTurn++;
-        this->last_playing_player = players[(mTurn-mConsecutivePassCounter) % players.size()];
-        this->current_player      = players[(mTurn) % players.size()];
+        this->current_player = players[(mTurn) % players.size()];
 
         if (mSettings.game_quality == GameQuality::pretty) {
-            emit announce(current_player->getName() + "'s turn:");
+            emit announce("\n"+ current_player->getName() + "'s turn:");
         }
         emit announce(QString::number(playerIndex(current_player)), "TURN");
         emit take_action(*current_player.get(), play);

@@ -52,7 +52,7 @@ void SocketPlayer::take_action(IPlayer &player, GameAction action) {
 void SocketPlayer::recieve() {
 
     QByteArray utfData = mSocket->readAll();
-    // qDebug() << mName << " RECIEVED: " << utfData;
+    //qDebug() << mName << " RECIEVED: " << utfData;
     QString data = QString::fromUtf8(utfData);
 
     for (auto& line : data.split(MSG_DELIMITER)) {

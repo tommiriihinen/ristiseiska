@@ -61,7 +61,9 @@ win32 {
     copyfiles.commands += @call copy ..\\$${TARGET}\\..\\python\\ $${DESTDIR}\\ &
     copyfiles.commands += @echo NOW COPYING MODELS &
     copyfiles.commands += @call dir ..\\$${TARGET}\\..\\python &
-    copyfiles.commands += @call xcopy ..\\$${TARGET}\\..\\python\\models\\ $${DESTDIR}\\models\\ /E /Y
+    copyfiles.commands += @call xcopy ..\\$${TARGET}\\..\\python\\models\\ $${DESTDIR}\\models\\ /E /Y &
+    copyfiles.commands += @echo NOW CREATING LOGS DIRECTORY &
+    copyfiles.commands += @call dir $${DESTDIR}\\logs
 }
 
 QMAKE_EXTRA_TARGETS += copyfiles

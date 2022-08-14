@@ -35,15 +35,33 @@ except (ValueError, NotImplementedError) as exc:
 """
 
 np.set_printoptions(linewidth=80, precision=3)
-logging.basicConfig(format="%(levelname)s: %(message)s")
+
+logging.basicConfig(filename="logs/neuralclient.txt",
+                    format="%(asctime)s %(levelname)s %(message)s")
+
+
+ui_handler = logging.StreamHandler(sys.stdout)
+ui_handler.setFormatter(logging.Formatter("%(message)s"))
+
+ui = logging.getLogger("ui")
+ui.setLevel(logging.INFO)
+ui.addHandler(ui_handler)
 
 HOST = "127.0.0.1"  # The server's hostname or IP address
 PORT = 1234  # The port used by the server
-MSG_DELIMITER = "/"
+MSG_DELIMITER = "§"
 MSG_DELIMITER_UTF8 = MSG_DELIMITER.encode('UTF-8')
 DIR = "models"
-SHOW_GAME = True
 MAX_PLAYERS = 3
+
+
+def set_show_level(level):
+    if level == 0:  # No UI
+        ui.setLevel(logging.CRITICAL)
+    elif level == 1:  # Small UI
+        ui.setLevel(logging.INFO)
+    elif level == 2:  # Full UI
+        ui.setLevel(logging.DEBUG)
 
 
 def binarize_card(card_id):
@@ -71,7 +89,6 @@ def binarize_card(card_id):
         rank = int(card_id[1])
     card_index = (suit * 13 + rank) - 1  # 0-51
 
-    logging.debug(f"binarized {card_id} to {card_index}")
     return card_index
 
 
@@ -102,7 +119,6 @@ def debinarize_card(card_index):
     else:
         rank = str(mod)
     card_id = suit + rank
-    logging.debug(f"debinarized {card_index} to {card_id}")
     return card_id  # C-S A-K
 
 
@@ -206,7 +222,6 @@ class NeuralPlayer:
 
         # Pass if nothing fits.
         if np.all(options == 0):
-            logging.info("Passing")
             return 'P;'
 
         # If can end, end fast.
@@ -217,7 +232,7 @@ class NeuralPlayer:
                 return f"{debinarize_card(card_ids[0])};0"
             for card_id in card_ids:
                 if debinarize_card(card_id)[1] in ['K', 'A']:
-                    logging.info(f"QUICK END")
+                    ui.info(f"Ending quick")
                     self.hand[card_id] = 0
                     table[card_id] = 1
                     return f"{debinarize_card(card_id)};1"
@@ -229,7 +244,6 @@ class NeuralPlayer:
         table[card_id] = 1
 
         card = debinarize_card(card_id)
-        logging.info(f"Playing: {card}")
         return f"{card};0"
 
     def give(self, table):
@@ -238,7 +252,6 @@ class NeuralPlayer:
         self.hand[card_id] = 0
 
         card = debinarize_card(card_id)
-        logging.info(f"Playing: {card}")
         return f"{card};"
 
     def act(self, action: int, table: np.ndarray, options: np.ndarray):
@@ -250,12 +263,12 @@ class NeuralPlayer:
         model_output = self.model.predict_single(model_input)
 
         has = np.multiply(model_output, self.hand).flatten()
-        logging.info(f"Hand score: {np.sum(has):.2f}")
-        logging.info(f"Want's to play:  {debinarize_array(has)}")
+        ui.debug(f"Hand score: {np.sum(has):.2f}")
+        ui.debug(f"Want's to play:  {debinarize_array(has)}")
 
         # Filter unfeasible moves
         realization = np.multiply(model_output, options)
-        logging.info(f"Can play:        {debinarize_array(realization)}")
+        ui.debug(f"Can play:        {debinarize_array(realization)}")
 
         realization[realization == 0] = -np.inf
         decision = np.argmax(realization)
@@ -281,11 +294,15 @@ class NeuralClient:
     def listen(self):
         dec = codecs.getincrementaldecoder('utf8')()
         while True:
-            received = self.__tcp_socket.recv(2048)
-            messages = dec.decode(received).split(MSG_DELIMITER)
-            for message in messages:
-                if message != '':
-                    self.handle_message(message)
+            try:
+                received = self.__tcp_socket.recv(2048)
+                messages = dec.decode(received).split(MSG_DELIMITER)
+                for message in messages:
+                    if message != '':
+                        self.handle_message(message)
+            except OSError:
+                print(e)
+                os._exit()
 
     def handle_message(self, message):
         try:
@@ -294,24 +311,25 @@ class NeuralClient:
             logging.warning(f"ERRONEOUS INPUT: '{message}'")
             return
 
-        logging.debug(f"received: {cmd}")
-
-        if cmd in ['WAIT', 'PROMPT', 'SETTINGS', 'END']:
+        if cmd in ['WAIT', 'PROMPT', 'END']:
             pass
 
         elif cmd == 'PLAY':
-
+            # Play a card
             card = self.player.play(self.table, self.options)
             self.send(card)
             self.options = np.zeros(52)
+            ui.info(f"Playing: {card}")
 
         elif cmd == 'GIVE':
 
             card = self.player.give(self.table)
             self.send(card)
             self.options = np.zeros(52)
+            ui.info(f"Giving: {card}")
 
         elif cmd == 'STARTING_CARDS':
+            # Take starting card to hand
             self.player.add_card(content)
 
         elif cmd == 'CARD_PLAYED':
@@ -332,20 +350,25 @@ class NeuralClient:
             self.player.reset_cards()
 
         elif cmd == 'OPTION':
-            logging.info(f"Option: {content}")
+            ui.info(f"Option: {content}")
             self.options[binarize_card(content)] = 1
 
         elif cmd == 'NICK':
             self.send(self.nickname)
 
         elif cmd == 'MSG':
-            logging.info(content)
+            ui.info(content)
 
         elif cmd == 'ERROR':
-            logging.critical(content)
+            logging.error(content)
 
         elif cmd == "KILL":
             os._exit()
+
+        elif cmd == 'SETTINGS':
+            field, value = content.split(":")
+            if field == 'SHOW':
+                set_show_level(int(value))
 
         else:
             logging.error(f"UNCAUGHT MESSAGE: {message}")
@@ -354,6 +377,7 @@ class NeuralClient:
         try:
             self.__tcp_socket.send((message + MSG_DELIMITER).encode('UTF-8'))
         except OSError as e:
+            print(e)
             os._exit()
 
 
@@ -361,17 +385,11 @@ def main():
     print(f"Ristiseiska NeuralClient running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
 
     parser = argparse.ArgumentParser(description='Create ANN powered Ristiseiska Client')
-    output_level = parser.add_argument('-output', help="Output level", type=int, choices=[0, 1, 2], default=0)
-    model_directory = parser.add_argument('-model', help="Model")
+    parser.add_argument('-output', help="Output level", type=int, choices=[0, 1, 2], default=1)
+    parser.add_argument('-model', help="Model")
     args = parser.parse_args()
 
-    output_level = args.output
-    if output_level == 0:
-        logging.getLogger().setLevel(logging.WARNING)
-    elif output_level == 1:
-        logging.getLogger().setLevel(logging.INFO)
-    elif output_level == 2:
-        logging.getLogger().setLevel(logging.DEBUG)
+    set_show_level(int(args.output))
 
     model_directory = args.model
     if not model_directory:

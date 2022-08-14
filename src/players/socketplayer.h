@@ -38,7 +38,7 @@ private:
     bool mActionPending = false;
     QTcpSocket* mSocket = nullptr;
 
-    QString MSG_DELIMITER { "/" };
+    QString MSG_DELIMITER { "§" };
     QByteArray MSG_DELIMITER_UTF8 { MSG_DELIMITER.toUtf8() };
 };
 

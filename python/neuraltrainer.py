@@ -1,11 +1,12 @@
-# import required module
 import os
 import sys
 import csv
 import time
 import logging
-from datetime import timedelta
 from tqdm import tqdm
+from serializer import Parser
+import dill
+
 import pyinputplus as pyip
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,33 +20,37 @@ import keras
 np.set_printoptions(linewidth=1000, formatter={'all': lambda x: str(x) + ","}, threshold=sys.maxsize)
 
 
-DATA_DIR = 'data'
+DATA_DIR = 'data/parsed'
 SAVE_DIR = 'models'
 LOGS_DIR = 'logs'
-DEFAULT_DATA = "test.csv"
-DEFAULT_SAVE = "test"
+DEFAULT_TRAIN_DATA = "test.bin"
+DEFAULT_VAL_DATA = "test.bin"
+DEFAULT_SAVE = "def"
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+log = logging.getLogger("main")
+log.setLevel(logging.INFO)
 # logging.basicConfig(filename="logs/logs.txt", level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
 
-DEFAULT_EPOCHS = 50
-DEFAULT_BATCH = 10
-LEARNING_RATE = 0.001
-VALIDATION_SPLIT = 0.2
-PATIENCE = 3
+DEFAULT_STEPS_PER_EPOCH = 5
+DEFAULT_EPOCHS = 10
+DEFAULT_BATCH = 100
+DEFAULT_LEARNING_RATE = 0.0001
+PATIENCE = 5
 
 
-def train(features, labels, epochs, batch_size):
+def train(train_gen, val_gen, epochs, batch_size, learning_rate):
 
     # Create model
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
         tf.keras.layers.Dense(105, activation='elu'),
+        tf.keras.layers.Dense(105, activation='elu'),
         tf.keras.layers.Dense(80, activation='elu'),
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
-    opt = keras.optimizers.Adam(learning_rate=LEARNING_RATE)
+    opt = keras.optimizers.Adam(learning_rate=learning_rate)
 
     model.compile(optimizer=opt,
                   loss=squared_error_masked,
@@ -62,119 +67,14 @@ def train(features, labels, epochs, batch_size):
                                                      restore_best_weights=True)
 
     # Training
-    history = model.fit(features,
-                        labels,
+    training_start_time = time.process_time()
+    history = model.fit(train_gen,
+                        validation_data=val_gen,
                         epochs=epochs,
-                        batch_size=batch_size,
-                        validation_split=VALIDATION_SPLIT,
-                        callbacks=[cp_callback, earlystopping])
+                        callbacks=[cp_callback, earlystopping],
+                        use_multiprocessing=True)
 
-    return model, history
-
-
-def binarize_card_id(card_id):
-    suit = 0
-    if card_id[0] == 'C':
-        suit = 0
-    elif card_id[0] == 'D':
-        suit = 1
-    elif card_id[0] == 'H':
-        suit = 2
-    elif card_id[0] == 'S':
-        suit = 3
-
-    if card_id[1] == 'A':
-        rank = 1
-    elif card_id[1] == 'X':
-        rank = 10
-    elif card_id[1] == 'J':
-        rank = 11
-    elif card_id[1] == 'Q':
-        rank = 12
-    elif card_id[1] == 'K':
-        rank = 13
-    else:
-        rank = int(card_id[1])
-
-    return (suit * 13 + rank) - 1  # 0-51
-
-
-def parse_game(game, training_inputs, training_outputs):
-    winning_examples = 0
-    losing_examples = 0
-
-    players = int(game['Player Count'])
-    winner = int(game['Winner'])
-
-    # Binarize starting hands
-    starting_hands = np.zeros((players, 52), dtype="b")
-    hand_data = game['Starting Hands'].split(";")  # P1 C2 C7 DA ... ,P2 CA C3 D4 ...
-
-    for player in range(0, players):
-        card_ids = hand_data[player].strip().split(" ")  # P1 C2 C7 DA ...
-        player_id = card_ids.pop(0)  # P[1]
-
-        for card_id in card_ids:
-            starting_hands[player][binarize_card_id(card_id)] = 1
-
-    # Init running hands and table
-    running_hands = starting_hands.copy()
-    running_table = np.zeros(52, dtype="b")
-
-    # Start parsing
-    turn_data = game['Actions'].split(";")
-    for unit in turn_data[:-1]:
-        contents = unit.split(" ")
-        player = int(contents[1][0])
-        action = 1 if (contents[0] == 'P') else 0
-        card = binarize_card_id(contents[2])
-        hand = running_hands[player]
-
-        inputs = np.concatenate((action, hand, running_table.flatten()), dtype="b", axis=None)
-        outputs = np.zeros(52, dtype="b")
-
-        if winner == player:
-            outputs[card] = 1
-        else:
-            outputs[card] = -1
-
-        training_inputs.append(inputs)
-        training_outputs.append(outputs)
-
-        if action:  # is play
-            running_hands[player][card] = 0
-            running_table[card] = 1
-        else:  # is give
-            taker = int(contents[1][1])
-            running_hands[player][card] = 0
-            running_hands[taker][card] = 1
-
-
-def decomment(csvfile):
-    for row in csvfile:
-        raw = row.split('#')[0].strip()
-        if raw: yield raw
-
-
-def load_data(filenames):
-    features = []
-    labels = []
-
-    for filename in filenames:
-        path = "/".join([DATA_DIR, filename])
-
-        # Find file length
-        line_count = -1
-        with open(path) as csvfile:
-            for _ in csv.reader(decomment(csvfile)):
-                line_count += 1
-
-        with open(path) as csvfile:
-            reader = csv.DictReader(decomment(csvfile))
-            for i, row in enumerate(tqdm(reader, total=line_count)):
-                parse_game(row, features, labels)
-
-    return np.array(features, dtype="b"), np.array(labels, dtype="b")
+    return model, history, training_start_time
 
 
 def squared_error_masked(y_true, y_pred):
@@ -192,13 +92,51 @@ def agreeableness(y_true, y_pred):
         return K.argmin(y_true) == K.argmax(y_pred)
 
 
+class DataGen(tf.keras.utils.Sequence):
+
+    def __init__(self, filepath, batch_size):
+        self.__parser = Parser(filepath)
+        self.__batch_size = batch_size
+
+        self.__n = len(self.__parser)
+        self.__timespent = 0
+
+    def on_epoch_end(self):
+        pass
+
+    def __getitem__(self, index):
+        start = time.process_time()
+
+        self.__parser.seek(index * self.__batch_size)
+
+        x_batch = np.empty((self.__batch_size, 105), dtype="b")
+        y_batch = np.empty((self.__batch_size, 52), dtype="b")
+        for i in range(0, self.__batch_size):
+            try:
+                x_batch[i], y_batch[i] = self.__parser.parse_next()
+            except EOFError as e:
+                print(index, i, e)
+
+        end = time.process_time()
+        self.__timespent += end - start
+        return x_batch, y_batch
+
+    def __len__(self):
+        return self.__n // self.__batch_size
+
+    def get_parser(self):
+        return self.__parser
+
+    def get_time_spent(self):
+        return self.__timespent
+
+    def get_n(self):
+        return self.__n
+
+
 def main():
     print(f"Ristiseiska NeuralTrainer running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
     # print(tf.reduce_sum(tf.random.normal([1000, 1000])))
-
-    # Create logger
-    log = logging.getLogger("main")
-    log.setLevel(logging.INFO)
 
     # Show available data
     print("Available datasets:")
@@ -207,32 +145,27 @@ def main():
             print(f" {filename.name}")
 
     # Ask for training parameters
-    datafiles = pyip.inputStr("Datafiles: ", default=DEFAULT_DATA, limit=1).split()
+    train_data_file = pyip.inputStr("Training data: ", default=DEFAULT_TRAIN_DATA, limit=1)
+    val_data_file = pyip.inputStr("Validation data: ", default=DEFAULT_VAL_DATA, limit=1)
     savefile = pyip.inputStr("Savefile: ", default=DEFAULT_SAVE, limit=1)
     epochs = pyip.inputInt("Epochs: ", default=DEFAULT_EPOCHS, limit=1)
     batch_size = pyip.inputInt("Batch size: ", default=DEFAULT_BATCH, limit=1)
+    learning_rate = pyip.inputFloat("Learning rate: ", default=DEFAULT_LEARNING_RATE, limit=1)
+
+    process_start_time = time.process_time()
 
     # Parse input data
-    print("Parsing data:")
-    parsing_start_time = time.process_time()
-    training_features, training_labels = load_data(datafiles)
-    parsing_end_time = time.process_time()
+    train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size)
+    val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size)
 
-    # Log input data
-    log.info(f"Features size:      {training_labels.size}")
-    log.info(f"Labels size:        {training_labels.size}")
-    log.info(f"Data length:        {len(training_features)}")
-    log.info(f"Feature unit size:  {training_features[0].size}")
-    log.info(f"Label unit size:    {training_labels[0].size}")
-    log.info(f"Feature datatype:   {training_features.dtype}")
-    log.info(f"Label datatype:     {training_labels.dtype}")
+    print(dill.detect.baditems(train_gen))
 
     # Train model
-    training_start_time = time.process_time()
-    model, history = train(training_features,
-                           training_labels,
-                           epochs,
-                           batch_size)
+    model, history, training_start_time = train(train_gen,
+                                                val_gen,
+                                                epochs,
+                                                batch_size,
+                                                learning_rate)
     training_end_time = time.process_time()
 
     # Saving model
@@ -252,21 +185,31 @@ def main():
     model_logger_fhandler = logging.FileHandler(logs_path, mode="w")
     model_logger_fhandler.setLevel(logging.INFO)
     log.addHandler(model_logger_fhandler)
+    log.info(f"Model name: {savefile}")
 
     # Log model training
-    log.info(f"Name: {savefile}")
     model.summary(print_fn=log.info)
 
-    log.info(f"Datafiles: {datafiles}")
-    log.info(f"Parameters:")
-    log.info(f"  Epochs: {epochs}")
-    log.info(f"  Batch size: {batch_size}")
-    log.info(f"  Validation split: {VALIDATION_SPLIT}")
-    log.info(f"  Learning rate: {LEARNING_RATE}")
-    log.info(f"  Patience: {PATIENCE}")
-    log.info(f"Time elapsed:")
-    log.info(f"  Parsing:  {time.strftime('%Hh%Mm%Ss', time.gmtime(parsing_end_time - parsing_start_time))}")
-    log.info(f"  Training: {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - training_start_time))}")
+    log.info(train_gen.get_parser())
+    log.info(f"Datafiles:\n"
+             f" - Training: {train_data_file} {train_gen.get_parser().get_file_size()/1024**2:.2f} MB\n"
+             f" - Validation: {val_data_file} {train_gen.get_parser().get_file_size()/1024**2:.2f} MB\n")
+    log.info(f"Parameters:\n"
+             f" - Epochs: {epochs}\n"
+             f" - Batch size: {batch_size}\n"
+             f" - Learning rate: {learning_rate}\n"
+             f" - Patience: {PATIENCE}\n")
+    log.info(f"Training:\n"
+             f" - Total batches: {len(train_gen)}\n"
+             f" - Total examples: {train_gen.get_n()}\n")
+    log.info(f"Validation:\n"
+             f" - Total batches: {len(val_gen)}\n"
+             f" - Total examples: {val_gen.get_n()}\n"
+             f" - Ratio: {val_gen.get_n()/train_gen.get_n()}\n")
+    log.info(f"Time elapsed:\n"
+             f" - Training: {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - training_start_time))}\n"
+             f" - Parsing:  {time.strftime('%Hh%Mm%Ss', time.gmtime(train_gen.get_time_spent() + val_gen.get_time_spent()))}\n"
+             f" - Total:    {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - process_start_time))}\n")
 
     model_logger_fhandler.close()
     logging.shutdown()
@@ -282,7 +225,7 @@ def main():
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
     plt.savefig(agreeableness_plot_path)
-    plt.show()
+    plt.close()
     # summarize history for loss
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])

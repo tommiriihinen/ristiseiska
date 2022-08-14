@@ -26,6 +26,11 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, b
     std::vector<IPlayer*> players;
 
     // CLIENT PLAYERS:
+    std::string debugargs = "";
+    #ifdef QT_DEBUG
+        debugargs += "-m pdb -c continue ";
+    #endif
+
     for (int c = 1; c <= clientplrs; c++) {
         std::shared_ptr<SocketPlayer> player (new SocketPlayer);
         game.addPlayer(player);
@@ -35,7 +40,7 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, b
         // Start client
         std::string title = "\"CandyClient\"";
         std::string location = QCoreApplication::applicationDirPath().toStdString();
-        std::string command = "start " + title + " python " + location + "/candyclient.py";
+        std::string command = "start " + title + " python " + debugargs + location + "/candyclient.py";
         system(command.c_str());
     }
     for (int c = 1; c <= neuralplrs; c++) {
@@ -49,18 +54,14 @@ void PlayerFactory::createPlayers(std::map<PlayerType, int> order, Game &game, b
         std::string navigate = "cd " + QCoreApplication::applicationDirPath().toStdString();
         std::string activate_env  = "C:/ProgramData/Miniconda3/Scripts/activate.bat & conda activate tf";
         std::string python = "C:/ProgramData/Miniconda3/python.exe "; //
-        std::string pythonargs = "";
-        #ifdef QT_DEBUG
-            pythonargs += "-m pdb -c continue ";
-        #endif
         std::string args = "";
         if (benchmarking) args += " -output 0 -model " + mBenchmarkingModel.toStdString() + " ";
 
-        std::string file = "neuralclient.py";
+        std::string script = "neuralclient.py";
         std::string command = "start " + title + " cmd /c \"" + navigate + " & "
                                                               + activate_env + " & "
-                                                              + "python " + pythonargs
-                                                              + file + args
+                                                              + "python " + debugargs
+                                                              + script + args
                                                               + "\"";
         system(command.c_str());        
     }
@@ -104,7 +105,7 @@ void PlayerFactory::connectSocketPlayer() {
 
 void PlayerFactory::socketPlayerReady(SocketPlayer* readyPlayer) {
 
-    qDebug() << readyPlayer->getName() << " named ";
+    qDebug() << readyPlayer->getName() << " named and ready";
     disconnect(readyPlayer, &SocketPlayer::playerReady, this, &PlayerFactory::socketPlayerReady);
 
     Q_ASSERT(mSocketPlayerStatusMap[readyPlayer] == SocketPlayerStatus::naming);
