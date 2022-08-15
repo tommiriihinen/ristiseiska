@@ -92,18 +92,25 @@ class Parser:
 
         return s
 
-    def parse(self, idx):
+    def parse_batch(self, idx, batch_size):
+
+        x_batch = np.empty((batch_size, 105), dtype="b")
+        y_batch = np.empty((batch_size, 52), dtype="b")
 
         with open(self.__filepath, "rb") as file:
 
-            file.seek(idx * ROW_BYTES)
-            arr = bitarray()
-            arr.fromfile(file, ROW_BYTES)
+            for i in range(0, batch_size):
+                file.seek(idx * ROW_BYTES + i * ROW_BYTES)
+                arr = bitarray()
+                arr.fromfile(file, ROW_BYTES)
 
-            x = extract(arr, **ML_PARSE['x'])
-            y = extract(arr, **ML_PARSE['y'])
+                x_batch[i] = extract(arr, **ML_PARSE['x'])
+                y_batch[i] = extract(arr, **ML_PARSE['y'])
 
-        return x, y
+        assert not np.all((x_batch[-1] == 0))
+        assert not np.all((x_batch[-1] == 0))
+
+        return x_batch, y_batch
 
     def get_file_size(self):
         return self.__file_size
