@@ -118,7 +118,9 @@ class NeuralTrainer:
               epochs=5,
               batch_size=1000,
               learning_rate=0.001,
-              patience=5):
+              patience=5,
+              multiprocessing=True,
+              workers=1):
 
         # Create data generators
         train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size)
@@ -160,7 +162,8 @@ class NeuralTrainer:
                                    validation_data=val_gen,
                                    epochs=epochs,
                                    callbacks=self.__callbacks,
-                                   use_multiprocessing=True)
+                                   use_multiprocessing=multiprocessing,
+                                   workers=workers)
         training_end_time = time.process_time()
 
         self.__log.info("Training history:")
@@ -190,12 +193,12 @@ def main():
             print(f" {filename.name}")
 
     # Ask for training parameters
-    train_data_file = input("Training data: ")
-    val_data_file = input("Validation data: ")
-    savefile = input("Savefile: ")
-    epochs = int(input("Epochs: "))
-    batch_size = int(input("Batch size: "))
-    learning_rate = float(input("Learning rate: "))
+    train_data_file = "3ggr200k.bin"
+    val_data_file = "3ggr50k.bin"
+    name = "Ruby"
+    epochs = 1
+    batch_size = 128
+    learning_rate = 0.0001
 
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
@@ -205,9 +208,9 @@ def main():
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
-    trainer = NeuralTrainer(model)
+    trainer = NeuralTrainer(model, name, "models")
     trainer.train(train_data_file, val_data_file, epochs, batch_size, learning_rate)
-    trainer.save(savefile)
+    trainer.save()
 
 
 if __name__ == "__main__":
