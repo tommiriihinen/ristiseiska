@@ -70,7 +70,7 @@ class DataGen:
         return self.__n
 
     def to_ds(self):
-        out_sign = tf.TensorSpec([None, 105]), tf.TensorSpec([None, 52])
+        out_sign = tf.TensorSpec([None, 105], dtype=tf.bool), tf.TensorSpec([None, 52], dtype=tf.int16)
         ds = tf.data.Dataset.from_generator(self, output_signature=out_sign)
         ds = ds.prefetch(tf.data.AUTOTUNE)
         return ds
