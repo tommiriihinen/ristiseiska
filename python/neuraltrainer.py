@@ -3,7 +3,6 @@ import sys
 import time
 import logging
 from serializer import Parser
-from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,7 +51,7 @@ class DataGen:
         return x_batch, y_batch
 
     def __call__(self):
-        for i in tqdm(range(len(self))):
+        for i in range(len(self)):
             yield self[i]
 
             if i == len(self)-1:
@@ -215,15 +214,15 @@ def main():
     ])
 
     trainer = NeuralTrainer(model, "Ruby", "models")
-    trainer.train(train_data_file="3ggr200k.bin",
+    trainer.train(train_data_file="3ggr1M.bin",
                   val_data_file="3ggr50k.bin",
-                  epochs=128,
-                  batch_size=20,
+                  epochs=20,
+                  batch_size=1024,
                   learning_rate=0.0001,
                   patience=5,
                   shuffle=True,
-                  multiprocessing=False,
-                  workers=0)
+                  multiprocessing=True,
+                  workers=8)
     trainer.save()
 
 

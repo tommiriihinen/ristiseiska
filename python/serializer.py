@@ -77,6 +77,7 @@ class Parser:
     def __init__(self, filepath=None):
         self.__filepath = filepath
         if filepath:
+            self.__file = open(filepath, "rb")
             self.__file_size = os.path.getsize(self.__filepath)
 
     def __len__(self):
@@ -97,15 +98,12 @@ class Parser:
         x_batch = np.empty((batch_size, 105), dtype="b")
         y_batch = np.empty((batch_size, 52), dtype="b")
 
-        with open(self.__filepath, "rb") as file:
+        for i in range(0, batch_size):
+            arr = bitarray()
+            arr.fromfile(self.__file, ROW_BYTES)
 
-            for i in range(0, batch_size):
-                file.seek(idx * ROW_BYTES + i * ROW_BYTES)
-                arr = bitarray()
-                arr.fromfile(file, ROW_BYTES)
-
-                x_batch[i] = extract(arr, **ML_PARSE['x'])
-                y_batch[i] = extract(arr, **ML_PARSE['y'])
+            x_batch[i] = extract(arr, **ML_PARSE['x'])
+            y_batch[i] = extract(arr, **ML_PARSE['y'])
 
         assert not np.all((x_batch[-1] == 0))
         assert not np.all((x_batch[-1] == 0))
@@ -125,7 +123,7 @@ def main():
     file = "data/parsed/conf.bin"
     parser = Parser(file)
     for i in range(0, len(parser)//10):
-        x_batch, y_batch = (parser.parse_batch(i, 10))
+        x_batch, y_batch = (parser.parse_batch(i, 1))
         print(x_batch)
         print(x_legend)
         print(y_batch)
