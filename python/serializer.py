@@ -75,54 +75,81 @@ class Serializer:
 class Parser:
 
     def __init__(self, filepath=None):
-        self.__filepath = filepath
         if filepath:
-            self.__file = open(filepath, "rb")
-            self.__file_size = os.path.getsize(self.__filepath)
+            self.__file_size = os.path.getsize(filepath)
+
+            with open(filepath, "rb") as file:
+                print("Reading binary")
+                self.__data = bitarray()
+                self.__data.fromfile(file, -1)
+                print("Read")
 
     def __len__(self):
         return self.__file_size // ROW_BYTES
 
     def __str__(self):
-        s = f"Parser info:\n" \
-            f" - Serial: {SERIAL}\n" \
-            f" - Parse:  {ML_PARSE}\n"
-
-        for var in ML_PARSE.values():
-            s += "\n" + inspect.getsource(var['operation'])
-
-        return s
+        pass
 
     def parse_batch(self, idx, batch_size):
-
-        self.__file.seek(idx * ROW_BYTES)
 
         x_batch = np.empty((batch_size, 105), dtype="b")
         y_batch = np.empty((batch_size, 52), dtype="b")
 
-        for i in range(0, batch_size):
-            arr = bitarray()
-            arr.fromfile(self.__file, ROW_BYTES)
+        for i in range(idx):
+            arr = self.__data[i * ROW_BYTES : (i+1) * ROW_BYTES + 1]
 
             x_batch[i] = extract(arr, **ML_PARSE['x'])
             y_batch[i] = extract(arr, **ML_PARSE['y'])
 
         return x_batch, y_batch
 
+    def parse_single(self, i: int):
+        idx = (1*90 + 10)//100
+        a = idx
+        start = a * 112
+        b = idx+1
+        end = b * 112
+        assert start < end, f"start {start}, end {end}"
+        diff = end - start
+        arr = self.__data[start:end]
+        assert len(arr) == 112, f"len: {len(self)}, idx: {idx}, start {start}, end {end}, diff {diff}, arr {len(arr)}, a {a}, b {b}"
+        return extract(arr, **ML_PARSE['x']), extract(arr, **ML_PARSE['y'])
+
     def get_file_size(self):
         return self.__file_size
+
+
+def parse(data, idx):
+    start = idx * 112
+    end = (idx+1) * 112
+    assert start < end, f"start {start}, end {end}"
+    diff = end - start
+    arr = data[start:end]
+    assert len(arr) == 112, f"len: {len(data)}, idx: {idx}, start {start}, end {end}, diff {diff}, arr {len(arr)}, a {a}, b {b}"
+    return extract(arr, **ML_PARSE['x']), extract(arr, **ML_PARSE['y'])
+
+
+def protocol():
+    s = f"Parser info:\n" \
+        f" - Serial: {SERIAL}\n" \
+        f" - Parse:  {ML_PARSE}\n"
+
+    for var in ML_PARSE.values():
+        s += "\n" + inspect.getsource(var['operation'])
+
+    return s
 
 
 def main():
     np.set_printoptions(linewidth=1000, formatter={'all': lambda x: f"{x: }"}, threshold=2**32)
     legend = " CA C2 C3 C4 C5 C6 C7 C8 C9 CX CJ CQ CK DA D2 D3 D4 D5 D6 D7 D8 D9 DX DJ DQ DK HA H2 H3 H4 H5 H6 H7 H8 H9 HX HJ HQ HK SA S2 S3 S4 S5 S6 S7 S8 S9 SX SJ SQ SK"
-    x_legend = "  " + legend + legend + " A"
-    y_legend = "  " + legend
+    x_legend = " " + legend + legend + " A"
+    y_legend = " " + legend
 
     file = "data/parsed/conf.bin"
     parser = Parser(file)
-    for i in range(0, len(parser)//10):
-        x_batch, y_batch = (parser.parse_batch(i, 1))
+    for i in range(0, len(parser)):
+        x_batch, y_batch = (parser.parse_single(i))
         print(x_batch)
         print(x_legend)
         print(y_batch)

@@ -2,10 +2,11 @@ import os
 import sys
 import time
 import logging
-from serializer import Parser
+import serializer
 
 import matplotlib.pyplot as plt
 import numpy as np
+from bitarray import bitarray
 
 # TensorFlow and tf.keras
 import tensorflow as tf
@@ -35,34 +36,30 @@ def agreeableness(y_true, y_pred):
 class DataGen:
 
     def __init__(self, filepath, batch_size, shuffle=True):
-        self.__parser = Parser(filepath)
         self.__batch_size = batch_size
         self.__shuffle = shuffle
 
-        self.__n = len(self.__parser)
-        self.__timespent = 0
+        self.__n = os.path.getsize(filepath)
+
+        with open(filepath, "rb") as file:
+            print("Reading binary")
+            self.__buffer = bitarray()
+            self.__buffer.fromfile(file, -1)
+            print("Read")
 
     def __len__(self):
-        return self.__n // self.__batch_size
+        return self.__n
 
     def __getitem__(self, idx):
-        x_batch, y_batch = self.__parser.parse_batch(idx * self.__batch_size,
-                                                     self.__batch_size)
-        return x_batch, y_batch
+        return serializer.parse(self.__buffer, idx)
 
     def on_epoch_end(self):
         pass
 
-    def get_parser(self):
-        return self.__parser
-
-    def get_time_spent(self):
-        return self.__timespent
-
     def get_n(self):
         return self.__n
 
-    def to_ds(self):
+    def to_ds(self, shuffle):
 
         z = list(range(len(self)))
         dataset = tf.data.Dataset.from_generator(lambda: z, tf.uint8)
@@ -71,7 +68,10 @@ class DataGen:
                                                          inp=[idx],
                                                          Tout=[tf.bool,
                                                                tf.int8]),
-                              num_parallel_calls=tf.data.AUTOTUNE)
+                              num_parallel_calls=1)
+        if shuffle:
+            dataset = dataset.shuffle(1000)
+        # dataset = dataset.prefetch(1)
         return dataset
 
 
@@ -100,7 +100,7 @@ class NeuralTrainer:
         self.__log.addHandler(model_logger_fhandler)
         self.__log.info(f"Model name: {name}")
         self.__model.summary(print_fn=self.__log.info)
-        self.__log.info(Parser())  # Log the parser in use
+        self.__log.info(serializer.protocol())  # Log the parser in use
 
     def __create_histograms(self):
         # summarize history for agreeableness
@@ -141,13 +141,13 @@ class NeuralTrainer:
         train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size)
         val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size)
         # Wrap generators in tf.Dataset
-        train_ds = train_gen.to_ds()
-        val_ds = val_gen.to_ds()
+        train_ds = train_gen.to_ds(shuffle)
+        val_ds = val_gen.to_ds(shuffle)
 
         # Log
         self.__log.info(f"Datafiles:\n"
-                        f" - Training: {train_data_file} {train_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n"
-                        f" - Validation: {val_data_file} {val_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n")
+                        f" - Training: {train_data_file} {0 / 1024 ** 2:.2f} MB\n"
+                        f" - Validation: {val_data_file} {0 / 1024 ** 2:.2f} MB\n")
         self.__log.info(f"Parameters:\n"
                         f" - Epochs: {epochs}\n"
                         f" - Batch size: {batch_size}\n"
@@ -209,13 +209,12 @@ def main():
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
         tf.keras.layers.Dense(105, activation='elu'),
-        tf.keras.layers.Dense(105, activation='elu'),
         tf.keras.layers.Dense(80, activation='elu'),
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
     trainer = NeuralTrainer(model, "Ruby", "models")
-    trainer.train(train_data_file="3ggr1M.bin",
+    trainer.train(train_data_file="3ggr200k.bin",
                   val_data_file="3ggr50k.bin",
                   epochs=12,
                   epoch_divisions=20,
@@ -223,8 +222,8 @@ def main():
                   learning_rate=0.0001,
                   patience=5,
                   shuffle=True,
-                  multiprocessing=True,
-                  workers=12)
+                  multiprocessing=False,
+                  workers=1)
     trainer.save()
 
 
