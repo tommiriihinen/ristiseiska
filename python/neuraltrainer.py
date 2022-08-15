@@ -44,11 +44,7 @@ class DataGen:
         return self.__n // self.__batch_size
 
     def __getitem__(self, idx):
-        start = time.process_time()
-        x_batch, y_batch = self.__parser.parse_batch(idx * self.__batch_size,
-                                                     self.__batch_size)
-        self.__timespent += time.process_time() - start
-        return x_batch, y_batch
+        return self.__parser.parse(idx)
 
     def __call__(self):
         for i in range(len(self)):
@@ -127,36 +123,36 @@ class NeuralTrainer:
               batch_size=1000,
               learning_rate=0.001,
               patience=5,
+              validation_split=0.05,
               shuffle=True,
-              multiprocessing=True,
-              workers=1):
+              multiprocessing=False,
+              workers=0):
 
         # Create data generators
-        train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size, shuffle)
-        val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size, shuffle)
-
         out_sign = tf.TensorSpec([None, 105]), tf.TensorSpec([None, 52])
-        ds = tf.data.Dataset.from_generator(train_gen,
-                                            output_signature=out_sign)
-        ds = ds.prefetch(10)
-        ds.batch(batch_size)
+        # Training data
+        train_gen = DataGen(f"{DATA_DIR}/{train_data_file}")
+        train_ds = tf.data.Dataset.from_generator(train_gen,
+                                                  output_signature=out_sign)
+        train_ds = train_ds.prefetch(10)
+        train_ds.batch(batch_size)
+        # Validation data
+        val_gen = DataGen(f"{DATA_DIR}/{val_data_file}")
+        val_ds = tf.data.Dataset.from_generator(train_gen,
+                                                  output_signature=out_sign)
+        val_ds = train_ds.prefetch(10)
+        val_ds.batch(batch_size)
 
         # Log
         self.__log.info(f"Datafiles:\n"
                         f" - Training: {train_data_file} {train_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n"
-                        f" - Validation: {val_data_file} {val_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n")
+                        f" - Total batches: {len(train_gen)}\n"
+                        f" - Total examples: {train_gen.get_n()}\n")
         self.__log.info(f"Parameters:\n"
                         f" - Epochs: {epochs}\n"
                         f" - Batch size: {batch_size}\n"
                         f" - Learning rate: {learning_rate}\n"
                         f" - Patience: {patience}\n")
-        self.__log.info(f"Training:\n"
-                        f" - Total batches: {len(train_gen)}\n"
-                        f" - Total examples: {train_gen.get_n()}\n")
-        self.__log.info(f"Validation:\n"
-                        f" - Total batches: {len(val_gen)}\n"
-                        f" - Total examples: {val_gen.get_n()}\n"
-                        f" - Ratio: {val_gen.get_n() / train_gen.get_n()}\n")
 
         # Config model
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -173,8 +169,10 @@ class NeuralTrainer:
 
         # Training
         training_start_time = time.process_time()
-        history = self.__model.fit(ds,
+        history = self.__model.fit(train_ds,
+                                   validation_data=val_ds,
                                    epochs=epochs,
+                                   validation_split=validation_split,
                                    callbacks=self.__callbacks,
                                    use_multiprocessing=multiprocessing,
                                    workers=workers)
@@ -198,25 +196,6 @@ class NeuralTrainer:
 
 def main():
     print(f"Ristiseiska NeuralTrainer running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
-    # print(tf.reduce_sum(tf.random.normal([1000, 1000])))
-
-    # Show available data
-    print("Available datasets:")
-    for filename in os.scandir(DATA_DIR):
-        if filename.is_file():
-            print(f" {filename.name}")
-
-    # Ask for training parameters
-    train_data_file = "3ggr200k.bin"
-    val_data_file = "3ggr50k.bin"
-    name = "Ruby"
-    epochs = 20
-    batch_size = 128
-    learning_rate = 0.0001
-    patience = 5
-    multiprocessing = True
-    workers = 6
-    shuffle = True
 
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
@@ -226,16 +205,17 @@ def main():
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
-    trainer = NeuralTrainer(model, name, "models")
-    trainer.train(train_data_file=train_data_file,
-                  val_data_file=val_data_file,
-                  epochs=epochs,
-                  batch_size=batch_size,
-                  learning_rate=learning_rate,
-                  patience=patience,
-                  shuffle=shuffle,
-                  multiprocessing=multiprocessing,
-                  workers=workers)
+    trainer = NeuralTrainer(model, "Ruby", "models")
+    trainer.train(train_data_file="3ggr200k.bin",
+                  val_data_file="3ggr50k.bin",
+                  epochs=20,
+                  batch_size=128,
+                  learning_rate=0.0001,
+                  patience=5,
+                  validation_split=0.2,
+                  shuffle=True,
+                  multiprocessing=True,
+                  workers=8)
     trainer.save()
 
 
