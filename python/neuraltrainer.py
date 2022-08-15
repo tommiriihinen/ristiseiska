@@ -203,7 +203,7 @@ def main():
     val_data_file = "3ggr50k.bin"
     name = "Ruby"
     epochs = 20
-    batch_size = 5000
+    batch_size = 128
     learning_rate = 0.0001
     patience = 5
     multiprocessing = True
@@ -213,11 +213,8 @@ def main():
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
         tf.keras.layers.Dense(105, activation='elu'),
-        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(105, activation='elu'),
-        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(80, activation='elu'),
-        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
