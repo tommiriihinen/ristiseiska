@@ -30,7 +30,7 @@ def agreeableness(y_true, y_pred):
         return K.argmin(y_true) == K.argmax(y_pred)
 
 
-class DataGen(tf.keras.utils.Sequence):
+class DataGen:
 
     def __init__(self, filepath, batch_size, shuffle=True):
         self.__parser = Parser(filepath)
@@ -40,22 +40,25 @@ class DataGen(tf.keras.utils.Sequence):
         self.__n = len(self.__parser)
         self.__timespent = 0
 
-    def on_epoch_end(self):
-        pass
+    def __len__(self):
+        return self.__n // self.__batch_size
 
     def __getitem__(self, idx):
         start = time.process_time()
         x_batch, y_batch = self.__parser.parse_batch(idx * self.__batch_size,
                                                      self.__batch_size)
         self.__timespent += time.process_time() - start
-        if self.__shuffle:
-            p = np.random.permutation(len(x_batch))
-            return x_batch[p], y_batch[p]
-        else:
-            return x_batch, y_batch
+        return x_batch, y_batch
 
-    def __len__(self):
-        return self.__n // self.__batch_size
+    def __call__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+            if i == len(self)-1:
+                self.on_epoch_end()
+
+    def on_epoch_end(self):
+        pass
 
     def get_parser(self):
         return self.__parser
@@ -132,6 +135,12 @@ class NeuralTrainer:
         train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size, shuffle)
         val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size, shuffle)
 
+        out_sign = tf.TensorSpec([None, 105]), tf.TensorSpec([None, 52])
+        ds = tf.data.Dataset.from_generator(train_gen,
+                                            output_signature=out_sign)
+        ds = ds.prefetch(10)
+        ds.batch(batch_size)
+
         # Log
         self.__log.info(f"Datafiles:\n"
                         f" - Training: {train_data_file} {train_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n"
@@ -164,8 +173,7 @@ class NeuralTrainer:
 
         # Training
         training_start_time = time.process_time()
-        history = self.__model.fit(train_gen,
-                                   validation_data=val_gen,
+        history = self.__model.fit(ds,
                                    epochs=epochs,
                                    callbacks=self.__callbacks,
                                    use_multiprocessing=multiprocessing,
