@@ -3,6 +3,7 @@
 """
 import os.path
 
+from tqdm import tqdm
 from bitarray import bitarray
 import bitarray.util as bu
 import numpy as np
@@ -93,20 +94,20 @@ class Parser:
 
         return s
 
-    def parse_batch(self, idx, batch_size):
+    def parse_batch(self, batch_size):
+
+        if batch_size < 0:
+            batch_size = len(self)
 
         x_batch = np.empty((batch_size, 105), dtype="b")
         y_batch = np.empty((batch_size, 52), dtype="b")
 
-        for i in range(0, batch_size):
+        for i in tqdm(range(0, batch_size)):
             arr = bitarray()
             arr.fromfile(self.__file, ROW_BYTES)
 
             x_batch[i] = extract(arr, **ML_PARSE['x'])
             y_batch[i] = extract(arr, **ML_PARSE['y'])
-
-        assert not np.all((x_batch[-1] == 0))
-        assert not np.all((x_batch[-1] == 0))
 
         return x_batch, y_batch
 

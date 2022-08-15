@@ -134,17 +134,22 @@ class NeuralTrainer:
               learning_rate=0.001,
               patience=5,
               shuffle=True,
-              multiprocessing=True,
-              workers=1):
+              multiprocessing=False,
+              workers=0):
 
+        train_x, train_y = Parser(f"{DATA_DIR}/{train_data_file}").parse_batch(-1)
+        val_data = Parser(f"{DATA_DIR}/{val_data_file}").parse_batch(-1)
+        """
         # Create data generators
         train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size, shuffle)
         val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size, shuffle)
         # Wrap generators in tf.Dataset
         train_ds = train_gen.to_ds()
         val_ds = val_gen.to_ds()
+        """
 
         # Log
+        """ 
         self.__log.info(f"Datafiles:\n"
                         f" - Training: {train_data_file} {train_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n"
                         f" - Validation: {val_data_file} {val_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n")
@@ -160,6 +165,7 @@ class NeuralTrainer:
                         f" - Total batches: {len(val_gen)}\n"
                         f" - Total examples: {val_gen.get_n()}\n"
                         f" - Ratio: {val_gen.get_n() / train_gen.get_n()}\n")
+        """
 
         # Config model
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -176,13 +182,13 @@ class NeuralTrainer:
 
         # Training
         training_start_time = time.process_time()
-        history = self.__model.fit(train_ds,
-                                   validation_data=val_ds,
+        history = self.__model.fit(train_x, train_y,
+                                   validation_data=val_data,
                                    epochs=epochs,
                                    callbacks=self.__callbacks,
                                    use_multiprocessing=multiprocessing,
                                    workers=workers,
-                                   verbose=2)
+                                   verbose=1)
         training_end_time = time.process_time()
 
         self.__log.info("Training history:")
@@ -214,15 +220,15 @@ def main():
     ])
 
     trainer = NeuralTrainer(model, "Ruby", "models")
-    trainer.train(train_data_file="3ggr1M.bin",
-                  val_data_file="3ggr50k.bin",
+    trainer.train(train_data_file="3ggr50k.bin",
+                  val_data_file="test.bin",
                   epochs=20,
                   batch_size=1024,
                   learning_rate=0.0001,
                   patience=5,
                   shuffle=True,
-                  multiprocessing=True,
-                  workers=8)
+                  multiprocessing=False,
+                  workers=0)
     trainer.save()
 
 
