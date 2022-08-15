@@ -178,7 +178,7 @@ class NeuralTrainer:
         history = self.__model.fit(train_ds,
                                    validation_data=val_ds,
                                    epochs=epochs,
-                                   steps_per_epoch=len(train_gen),
+                                   steps_per_epoch=len(train_gen)//10,
                                    callbacks=self.__callbacks,
                                    use_multiprocessing=multiprocessing,
                                    workers=workers,
