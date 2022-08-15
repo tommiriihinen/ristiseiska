@@ -11,6 +11,8 @@ import numpy as np
 import tensorflow as tf
 from keras import backend as K
 
+tf.executing_eagerly = True
+
 DATA_DIR = 'data/parsed'
 SAVE_DIR = 'models'
 
@@ -44,18 +46,9 @@ class DataGen:
         return self.__n // self.__batch_size
 
     def __getitem__(self, idx):
-        start = time.process_time()
         x_batch, y_batch = self.__parser.parse_batch(idx * self.__batch_size,
                                                      self.__batch_size)
-        self.__timespent += time.process_time() - start
         return x_batch, y_batch
-
-    def __call__(self):
-        for i in range(len(self)):
-            yield self[i]
-
-            if i == len(self)-1:
-                self.on_epoch_end()
 
     def on_epoch_end(self):
         pass
@@ -70,10 +63,16 @@ class DataGen:
         return self.__n
 
     def to_ds(self):
-        out_sign = tf.TensorSpec([None, 105], dtype=tf.bool), tf.TensorSpec([None, 52], dtype=tf.int16)
-        ds = tf.data.Dataset.from_generator(self, output_signature=out_sign)
-        ds = ds.prefetch(tf.data.AUTOTUNE)
-        return ds
+
+        z = list(range(len(self)))
+        dataset = tf.data.Dataset.from_generator(lambda: z, tf.uint8)
+
+        dataset = dataset.map(lambda idx: tf.py_function(func=self.__getitem__,
+                                                         inp=[idx],
+                                                         Tout=[tf.bool,
+                                                               tf.int8]),
+                              num_parallel_calls=tf.data.AUTOTUNE)
+        return dataset
 
 
 class NeuralTrainer:
@@ -138,8 +137,8 @@ class NeuralTrainer:
               workers=1):
 
         # Create data generators
-        train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size, shuffle)
-        val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size, shuffle)
+        train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size)
+        val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size)
         # Wrap generators in tf.Dataset
         train_ds = train_gen.to_ds()
         val_ds = val_gen.to_ds()
@@ -179,10 +178,11 @@ class NeuralTrainer:
         history = self.__model.fit(train_ds,
                                    validation_data=val_ds,
                                    epochs=epochs,
+                                   steps_per_epoch=len(train_gen),
                                    callbacks=self.__callbacks,
                                    use_multiprocessing=multiprocessing,
                                    workers=workers,
-                                   verbose=2)
+                                   verbose=1)
         training_end_time = time.process_time()
 
         self.__log.info("Training history:")
@@ -222,7 +222,7 @@ def main():
                   patience=5,
                   shuffle=True,
                   multiprocessing=True,
-                  workers=8)
+                  workers=12)
     trainer.save()
 
 

@@ -95,6 +95,8 @@ class Parser:
 
     def parse_batch(self, idx, batch_size):
 
+        self.__file.seek(idx * batch_size)
+
         x_batch = np.empty((batch_size, 105), dtype="b")
         y_batch = np.empty((batch_size, 52), dtype="b")
 
