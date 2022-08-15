@@ -95,7 +95,7 @@ class Parser:
 
     def parse_batch(self, idx, batch_size):
 
-        self.__file.seek(idx * batch_size)
+        self.__file.seek(idx * ROW_BYTES)
 
         x_batch = np.empty((batch_size, 105), dtype="b")
         y_batch = np.empty((batch_size, 52), dtype="b")
@@ -106,9 +106,6 @@ class Parser:
 
             x_batch[i] = extract(arr, **ML_PARSE['x'])
             y_batch[i] = extract(arr, **ML_PARSE['y'])
-
-        assert not np.all((x_batch[-1] == 0))
-        assert not np.all((x_batch[-1] == 0))
 
         return x_batch, y_batch
 
