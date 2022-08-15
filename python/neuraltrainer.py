@@ -3,6 +3,7 @@ import sys
 import time
 import logging
 from serializer import Parser
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -51,7 +52,7 @@ class DataGen:
         return x_batch, y_batch
 
     def __call__(self):
-        for i in range(len(self)):
+        for i in tqdm(range(len(self))):
             yield self[i]
 
             if i == len(self)-1:
@@ -68,6 +69,12 @@ class DataGen:
 
     def get_n(self):
         return self.__n
+
+    def to_ds(self):
+        out_sign = tf.TensorSpec([None, 105]), tf.TensorSpec([None, 52])
+        ds = tf.data.Dataset.from_generator(self, output_signature=out_sign)
+        ds = ds.prefetch(tf.data.AUTOTUNE)
+        return ds
 
 
 class NeuralTrainer:
@@ -134,12 +141,9 @@ class NeuralTrainer:
         # Create data generators
         train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size, shuffle)
         val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size, shuffle)
-
-        out_sign = tf.TensorSpec([None, 105]), tf.TensorSpec([None, 52])
-        ds = tf.data.Dataset.from_generator(train_gen,
-                                            output_signature=out_sign)
-        ds = ds.prefetch(10)
-        ds.batch(batch_size)
+        # Wrap generators in tf.Dataset
+        train_ds = train_gen.to_ds()
+        val_ds = val_gen.to_ds()
 
         # Log
         self.__log.info(f"Datafiles:\n"
@@ -173,11 +177,13 @@ class NeuralTrainer:
 
         # Training
         training_start_time = time.process_time()
-        history = self.__model.fit(ds,
+        history = self.__model.fit(train_ds,
+                                   validation_data=val_ds,
                                    epochs=epochs,
                                    callbacks=self.__callbacks,
                                    use_multiprocessing=multiprocessing,
-                                   workers=workers)
+                                   workers=workers,
+                                   verbose=2)
         training_end_time = time.process_time()
 
         self.__log.info("Training history:")
