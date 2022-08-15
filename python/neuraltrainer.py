@@ -32,9 +32,10 @@ def agreeableness(y_true, y_pred):
 
 class DataGen(tf.keras.utils.Sequence):
 
-    def __init__(self, filepath, batch_size):
+    def __init__(self, filepath, batch_size, shuffle=True):
         self.__parser = Parser(filepath)
         self.__batch_size = batch_size
+        self.__shuffle = shuffle
 
         self.__n = len(self.__parser)
         self.__timespent = 0
@@ -47,7 +48,11 @@ class DataGen(tf.keras.utils.Sequence):
         x_batch, y_batch = self.__parser.parse_batch(idx * self.__batch_size,
                                                      self.__batch_size)
         self.__timespent += time.process_time() - start
-        return x_batch, y_batch
+        if self.__shuffle:
+            p = np.random.permutation(len(x_batch))
+            return x_batch[p], y_batch[p]
+        else:
+            return x_batch, y_batch
 
     def __len__(self):
         return self.__n // self.__batch_size
@@ -119,12 +124,13 @@ class NeuralTrainer:
               batch_size=1000,
               learning_rate=0.001,
               patience=5,
+              shuffle=True,
               multiprocessing=True,
               workers=1):
 
         # Create data generators
-        train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size)
-        val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size)
+        train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size, shuffle)
+        val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size, shuffle)
 
         # Log
         self.__log.info(f"Datafiles:\n"
@@ -196,20 +202,35 @@ def main():
     train_data_file = "3ggr200k.bin"
     val_data_file = "3ggr50k.bin"
     name = "Ruby"
-    epochs = 1
-    batch_size = 128
+    epochs = 20
+    batch_size = 5000
     learning_rate = 0.0001
+    patience = 5
+    multiprocessing = True
+    workers = 6
+    shuffle = True
 
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
         tf.keras.layers.Dense(105, activation='elu'),
+        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(105, activation='elu'),
+        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(80, activation='elu'),
+        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
     trainer = NeuralTrainer(model, name, "models")
-    trainer.train(train_data_file, val_data_file, epochs, batch_size, learning_rate)
+    trainer.train(train_data_file=train_data_file,
+                  val_data_file=val_data_file,
+                  epochs=epochs,
+                  batch_size=batch_size,
+                  learning_rate=learning_rate,
+                  patience=patience,
+                  shuffle=shuffle,
+                  multiprocessing=multiprocessing,
+                  workers=workers)
     trainer.save()
 
 

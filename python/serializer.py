@@ -7,7 +7,6 @@ from bitarray import bitarray
 import bitarray.util as bu
 import numpy as np
 import inspect
-import dill
 
 
 # This is a contract between the Serializer and the Parser
@@ -65,6 +64,7 @@ class Serializer:
         add_to_arr(arr, winning, 'Score')
 
         assert len(arr) // 8 == ROW_BYTES
+        print(arr)
 
         arr.tofile(self.__file)
 
@@ -98,10 +98,14 @@ class Parser:
         y_batch = np.empty((batch_size, 52), dtype="b")
 
         with open(self.__filepath, "rb") as file:
+            file.seek(idx * batch_size * ROW_BYTES)
+
+            batch = bitarray()
+            batch.fromfile(file, batch_size * ROW_BYTES)
 
             for i in range(0, batch_size):
                 arr = bitarray()
-                arr.fromfile(file, ROW_BYTES)
+                arr = batch[i * 8 * ROW_BYTES:(i+1) * 8 * ROW_BYTES]
 
                 x_batch[i] = extract(arr, **ML_PARSE['x'])
                 y_batch[i] = extract(arr, **ML_PARSE['y'])
@@ -112,4 +116,21 @@ class Parser:
         return self.__file_size
 
 
-# print(dill.detect.baditems(Parser("data/parsed/test.bin")))
+def main():
+    np.set_printoptions(linewidth=1000, formatter={'all': lambda x: f"{x: }"}, threshold=2**32)
+    legend = " CA C2 C3 C4 C5 C6 C7 C8 C9 CX CJ CQ CK DA D2 D3 D4 D5 D6 D7 D8 D9 DX DJ DQ DK HA H2 H3 H4 H5 H6 H7 H8 H9 HX HJ HQ HK SA S2 S3 S4 S5 S6 S7 S8 S9 SX SJ SQ SK"
+    x_legend = "  " + legend + legend + " A"
+    y_legend = "  " + legend
+
+    file = "data/parsed/conf.bin"
+    parser = Parser(file)
+    for i in range(0, 5):
+        x_batch, y_batch = (parser.parse_batch(i, 1))
+        print(x_batch)
+        print(x_legend)
+        print(y_batch)
+        print(y_legend)
+
+
+if __name__ == "__main__":
+    main()
