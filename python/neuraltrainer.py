@@ -206,24 +206,6 @@ def main():
     print(f"Ristiseiska NeuralTrainer running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
     # print(tf.reduce_sum(tf.random.normal([1000, 1000])))
 
-    # Show available data
-    print("Available datasets:")
-    for filename in os.scandir(DATA_DIR):
-        if filename.is_file():
-            print(f" {filename.name}")
-
-    # Ask for training parameters
-    train_data_file = "3ggr200k.bin"
-    val_data_file = "3ggr50k.bin"
-    name = "Ruby"
-    epochs = 20
-    batch_size = 128
-    learning_rate = 0.0001
-    patience = 5
-    multiprocessing = True
-    workers = 6
-    shuffle = True
-
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
         tf.keras.layers.Dense(105, activation='elu'),
@@ -232,16 +214,16 @@ def main():
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
-    trainer = NeuralTrainer(model, name, "models")
-    trainer.train(train_data_file=train_data_file,
-                  val_data_file=val_data_file,
-                  epochs=epochs,
-                  batch_size=batch_size,
-                  learning_rate=learning_rate,
-                  patience=patience,
-                  shuffle=shuffle,
-                  multiprocessing=multiprocessing,
-                  workers=workers)
+    trainer = NeuralTrainer(model, "Ruby", "models")
+    trainer.train(train_data_file="3ggr200k.bin",
+                  val_data_file="3ggr50k.bin",
+                  epochs=128,
+                  batch_size=20,
+                  learning_rate=0.0001,
+                  patience=5,
+                  shuffle=True,
+                  multiprocessing=False,
+                  workers=0)
     trainer.save()
 
 
