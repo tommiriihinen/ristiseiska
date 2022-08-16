@@ -141,9 +141,11 @@ def main():
     x_legend = "  " + legend + legend + " A"
     y_legend = "  " + legend
 
-    file = "data/parsed/conf.bin"
-    parser = Parser(file, 1)
-    for i in range(0, len(parser)//10):
+    file = "data/parsed/3ggr200k.bin"
+    parser = Parser(file)
+    w = 200
+    l = 4
+    for i in range(w, w + l):
         x_batch, y_batch = parser[i]
         print(x_batch)
         print(x_legend)

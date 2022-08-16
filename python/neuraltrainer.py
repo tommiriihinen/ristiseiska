@@ -127,6 +127,7 @@ class NeuralTrainer:
               train_data_file="test.bin",
               val_data_file="test.bin",
               epochs=15,
+              epoch_divs=1,
               batch_size=10,
               learning_rate=0.01,
               patience=None,
@@ -166,7 +167,8 @@ class NeuralTrainer:
         history = self.__model.fit(
             train_gen,
             validation_data=val_gen,
-            epochs=epochs,
+            epochs=epochs * epoch_divs,
+            steps_per_epoch= len(train_gen) // epoch_divs,
             callbacks=self.__callbacks,
             use_multiprocessing=multiprocessing,
             workers=workers)
@@ -204,12 +206,13 @@ def main():
     trainer.train(train_data_file="3ggr50k.bin",
                   val_data_file="test.bin",
                   epochs=1,
+                  epoch_divs=10,
                   batch_size=128,
                   learning_rate=0.0001,
                   patience=5,
                   shuffle=False,
-                  multiprocessing=True,
-                  workers=4)
+                  multiprocessing=False,
+                  workers=0)
     trainer.save()
 
 
