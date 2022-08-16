@@ -7,6 +7,7 @@ from bitarray import bitarray
 import bitarray.util as bu
 import numpy as np
 import inspect
+from tqdm import tqdm
 
 
 # This is a contract between the Serializer and the Parser
@@ -14,6 +15,7 @@ PARSED = {'Hand': np.ndarray, 'Table': np.ndarray, 'Action': bool, 'Card': int, 
 SERIAL = {'Hand': 52,         'Table': 52,         'Action': 1,    'Card': 6,   'Score': 1}
 
 ROW_BYTES = sum(SERIAL.values()) // 8
+ROW_BITS = ROW_BYTES * 8
 
 
 def combine(barr):
@@ -55,18 +57,17 @@ class Serializer:
         self.__file = open(filepath, "wb")
 
     def serialize_to_file(self, hand, table, action, card, winning):
-        arr = bitarray()
+        row = bitarray()
 
-        add_to_arr(arr, hand, 'Hand')
-        add_to_arr(arr, table, 'Table')
-        add_to_arr(arr, action, 'Action')
-        add_to_arr(arr, card, 'Card')
-        add_to_arr(arr, winning, 'Score')
+        add_to_arr(row, hand, 'Hand')
+        add_to_arr(row, table, 'Table')
+        add_to_arr(row, action, 'Action')
+        add_to_arr(row, card, 'Card')
+        add_to_arr(row, winning, 'Score')
 
-        assert len(arr) // 8 == ROW_BYTES
-        print(arr)
+        assert len(row) == ROW_BITS
 
-        arr.tofile(self.__file)
+        row.tofile(self.__file)
 
     def close(self):
         self.__file.close()
@@ -74,15 +75,50 @@ class Serializer:
 
 class Parser:
 
-    def __init__(self, filepath=None):
+    def __init__(self, filepath, batch_size=1):
         self.__filepath = filepath
-        if filepath:
-            self.__file_size = os.path.getsize(self.__filepath)
+        self.__batch_size = batch_size
+
+        self.__data_size = os.path.getsize(filepath)
+
+        self.__buffer = bitarray()
+        with open(filepath, "rb") as data_file:
+            for i in tqdm(range(self.__data_size // ROW_BYTES)):
+                arr = bitarray()
+                arr.fromfile(data_file, ROW_BYTES)
+                self.__buffer.extend(arr)
 
     def __len__(self):
-        return self.__file_size // ROW_BYTES
+        return self.__data_size // ROW_BYTES
 
-    def __str__(self):
+    def __getitem__(self, batch_start):
+        x_batch = np.empty((self.__batch_size, 105), dtype="b")
+        y_batch = np.empty((self.__batch_size, 52), dtype="b")
+
+        for i in range(self.__batch_size):
+            row_start = (batch_start + i) * ROW_BITS
+            row_end = (batch_start + i + 1) * ROW_BITS
+            row = self.__buffer[row_start:row_end]
+
+            x_batch[i] = extract(row, **ML_PARSE['x'])
+            y_batch[i] = extract(row, **ML_PARSE['y'])
+
+        assert len(x_batch[0]) == 105
+        assert len(y_batch[0]) == 52
+        assert len(x_batch) == self.__batch_size
+        assert len(y_batch) == self.__batch_size
+        assert not np.all((x_batch[-1] == 0))
+        assert not np.all((y_batch[-1] == 0))
+
+        return x_batch, y_batch
+
+    def __call__(self):
+        batches = self.__data_size//self.__batch_size
+        for batch in range(batches):
+            yield self[batch]
+
+    @classmethod
+    def get_protocol(cls):
         s = f"Parser info:\n" \
             f" - Serial: {SERIAL}\n" \
             f" - Parse:  {ML_PARSE}\n"
@@ -92,28 +128,11 @@ class Parser:
 
         return s
 
-    def parse_batch(self, idx, batch_size):
-
-        x_batch = np.empty((batch_size, 105), dtype="b")
-        y_batch = np.empty((batch_size, 52), dtype="b")
-
-        with open(self.__filepath, "rb") as file:
-
-            for i in range(0, batch_size):
-                file.seek(idx * ROW_BYTES + i * ROW_BYTES)
-                arr = bitarray()
-                arr.fromfile(file, ROW_BYTES)
-
-                x_batch[i] = extract(arr, **ML_PARSE['x'])
-                y_batch[i] = extract(arr, **ML_PARSE['y'])
-
-        assert not np.all((x_batch[-1] == 0))
-        assert not np.all((x_batch[-1] == 0))
-
-        return x_batch, y_batch
+    def get_examples(self):
+        return self.__data_size // ROW_BYTES
 
     def get_file_size(self):
-        return self.__file_size
+        return self.__data_size
 
 
 def main():
@@ -123,9 +142,9 @@ def main():
     y_legend = "  " + legend
 
     file = "data/parsed/conf.bin"
-    parser = Parser(file)
+    parser = Parser(file, 1)
     for i in range(0, len(parser)//10):
-        x_batch, y_batch = (parser.parse_batch(i, 10))
+        x_batch, y_batch = parser[i]
         print(x_batch)
         print(x_legend)
         print(y_batch)

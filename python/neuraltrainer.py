@@ -32,39 +32,23 @@ def agreeableness(y_true, y_pred):
 
 class DataGen(tf.keras.utils.Sequence):
 
-    def __init__(self, filepath, batch_size, shuffle=True):
-        self.__parser = Parser(filepath)
-        self.__batch_size = batch_size
+    def __init__(self, filepath, batch_size, shuffle):
         self.__shuffle = shuffle
-
-        self.__n = len(self.__parser)
-        self.__timespent = 0
+        self.__parser = Parser(filepath, batch_size)
+        self.__batch_size = batch_size
 
     def on_epoch_end(self):
         pass
 
     def __getitem__(self, idx):
-        start = time.process_time()
-        x_batch, y_batch = self.__parser.parse_batch(idx * self.__batch_size,
-                                                     self.__batch_size)
-        self.__timespent += time.process_time() - start
-        if self.__shuffle:
-            p = np.random.permutation(len(x_batch))
-            return x_batch[p], y_batch[p]
-        else:
-            return x_batch, y_batch
+        x_batch, y_batch = self.__parser[idx]
+        return x_batch, y_batch
 
     def __len__(self):
-        return self.__n // self.__batch_size
+        return len(self.__parser) // self.__batch_size
 
-    def get_parser(self):
-        return self.__parser
-
-    def get_time_spent(self):
-        return self.__timespent
-
-    def get_n(self):
-        return self.__n
+    def get_examples(self):
+        return len(self.__parser)
 
 
 class NeuralTrainer:
@@ -92,7 +76,7 @@ class NeuralTrainer:
         self.__log.addHandler(model_logger_fhandler)
         self.__log.info(f"Model name: {name}")
         self.__model.summary(print_fn=self.__log.info)
-        self.__log.info(Parser())  # Log the parser in use
+        self.__log.info(Parser.get_protocol())  # Log the parser in use
 
     def __create_histograms(self):
         # summarize history for agreeableness
@@ -117,69 +101,84 @@ class NeuralTrainer:
     def add_callback(self, callback):
         self.__callbacks.append(callback)
 
+    def __load_data_generators(self, train_data_file, val_data_file, batch_size, shuffle):
+        train_data_path = f"{DATA_DIR}/{train_data_file}"
+        val_data_path = f"{DATA_DIR}/{val_data_file}"
+
+        # Create data generators
+        train_gen = DataGen(train_data_path, batch_size, shuffle)
+        val_gen = DataGen(val_data_path, batch_size, shuffle)
+
+        # Log training data
+        self.__log.info(f"Datafiles:\n"
+                        f" - Training: {train_data_file} {os.path.getsize(train_data_path) / 1024 ** 2:.2f} MB\n"
+                        f" - Validation: {val_data_file} {os.path.getsize(val_data_path) / 1024 ** 2:.2f} MB\n")
+        self.__log.info(f"Training:\n"
+                        f" - Total batches: {len(train_gen)}\n"
+                        f" - Total examples: {train_gen.get_examples()}\n")
+        self.__log.info(f"Validation:\n"
+                        f" - Total batches: {len(val_gen)}\n"
+                        f" - Total examples: {val_gen.get_examples()}\n"
+                        f" - Ratio: {val_gen.get_examples() / train_gen.get_examples()*100:.2f}%\n")
+
+        return train_gen, val_gen
+
     def train(self,
               train_data_file="test.bin",
               val_data_file="test.bin",
-              epochs=5,
-              batch_size=1000,
-              learning_rate=0.001,
-              patience=5,
-              shuffle=True,
-              multiprocessing=True,
-              workers=1):
+              epochs=15,
+              batch_size=10,
+              learning_rate=0.01,
+              patience=None,
+              shuffle=False,
+              multiprocessing=False,
+              workers=0):
 
-        # Create data generators
-        train_gen = DataGen(f"{DATA_DIR}/{train_data_file}", batch_size, shuffle)
-        val_gen = DataGen(f"{DATA_DIR}/{val_data_file}", batch_size, shuffle)
-
-        # Log
-        self.__log.info(f"Datafiles:\n"
-                        f" - Training: {train_data_file} {train_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n"
-                        f" - Validation: {val_data_file} {val_gen.get_parser().get_file_size() / 1024 ** 2:.2f} MB\n")
+        # Log parameters
         self.__log.info(f"Parameters:\n"
                         f" - Epochs: {epochs}\n"
                         f" - Batch size: {batch_size}\n"
                         f" - Learning rate: {learning_rate}\n"
                         f" - Patience: {patience}\n")
-        self.__log.info(f"Training:\n"
-                        f" - Total batches: {len(train_gen)}\n"
-                        f" - Total examples: {train_gen.get_n()}\n")
-        self.__log.info(f"Validation:\n"
-                        f" - Total batches: {len(val_gen)}\n"
-                        f" - Total examples: {val_gen.get_n()}\n"
-                        f" - Ratio: {val_gen.get_n() / train_gen.get_n()}\n")
+
+        # Load data into generators
+        train_gen, val_gen = self.__load_data_generators(train_data_file,
+                                                         val_data_file,
+                                                         batch_size,
+                                                         shuffle)
 
         # Config model
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        self.__model.compile(
+            optimizer=opt,
+            loss=squared_error_masked,
+            metrics=agreeableness)
 
-        self.__model.compile(optimizer=opt,
-                             loss=squared_error_masked,
-                             metrics=agreeableness)
-
-        earlystopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
-                                                         mode="min",
-                                                         patience=patience,
-                                                         restore_best_weights=True)
-        self.__callbacks.append(earlystopping)
+        # Early stopping callback
+        self.__callbacks.append(tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss",
+            mode="min",
+            patience=patience,
+            restore_best_weights=True))
 
         # Training
         training_start_time = time.process_time()
-        history = self.__model.fit(train_gen,
-                                   validation_data=val_gen,
-                                   epochs=epochs,
-                                   callbacks=self.__callbacks,
-                                   use_multiprocessing=multiprocessing,
-                                   workers=workers)
+        history = self.__model.fit(
+            train_gen,
+            validation_data=val_gen,
+            epochs=epochs,
+            callbacks=self.__callbacks,
+            use_multiprocessing=multiprocessing,
+            workers=workers)
         training_end_time = time.process_time()
+
+        self.__log.info(f"Time elapsed:\n"
+                        f" - Training: {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - training_start_time))}\n")
 
         self.__log.info("Training history:")
         for key, value in history.history.items():
             self.__history[key].extend(value)
-            self.__log.info(f" - {key}: {value}")
-
-        self.__log.info(f"Time elapsed:\n"
-                        f" - Training: {time.strftime('%Hh%Mm%Ss', time.gmtime(training_end_time - training_start_time))}\n"
-                        f" - Parsing:  {time.strftime('%Hh%Mm%Ss', time.gmtime(train_gen.get_time_spent() + val_gen.get_time_spent()))}\n")
+            self.__log.info(f" - {key}:  {value}")
 
     def save(self):
         # Save model
@@ -192,24 +191,6 @@ def main():
     print(f"Ristiseiska NeuralTrainer running on Python {sys.version.split()[0]} and TensorFlow {tf.version.VERSION}\n")
     # print(tf.reduce_sum(tf.random.normal([1000, 1000])))
 
-    # Show available data
-    print("Available datasets:")
-    for filename in os.scandir(DATA_DIR):
-        if filename.is_file():
-            print(f" {filename.name}")
-
-    # Ask for training parameters
-    train_data_file = "3ggr200k.bin"
-    val_data_file = "3ggr50k.bin"
-    name = "Ruby"
-    epochs = 20
-    batch_size = 128
-    learning_rate = 0.0001
-    patience = 5
-    multiprocessing = True
-    workers = 6
-    shuffle = True
-
     model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=105),
         tf.keras.layers.Dense(105, activation='elu'),
@@ -218,16 +199,17 @@ def main():
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
-    trainer = NeuralTrainer(model, name, "models")
-    trainer.train(train_data_file=train_data_file,
-                  val_data_file=val_data_file,
-                  epochs=epochs,
-                  batch_size=batch_size,
-                  learning_rate=learning_rate,
-                  patience=patience,
-                  shuffle=shuffle,
-                  multiprocessing=multiprocessing,
-                  workers=workers)
+    trainer = NeuralTrainer(model, "Ruby", "models")
+
+    trainer.train(train_data_file="3ggr50k.bin",
+                  val_data_file="test.bin",
+                  epochs=1,
+                  batch_size=128,
+                  learning_rate=0.0001,
+                  patience=5,
+                  shuffle=False,
+                  multiprocessing=True,
+                  workers=4)
     trainer.save()
 
 
