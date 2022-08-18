@@ -18,24 +18,6 @@ ROW_BYTES = sum(SERIAL.values()) // 8
 ROW_BITS = ROW_BYTES * 8
 
 
-def combine(barr):
-    return np.frombuffer(barr.unpack(), dtype='b')
-
-
-def produce_feedback_array(barr):
-    farr = np.zeros(52, dtype='b')
-    farr[bu.ba2int(barr[:-1])] = 1 if barr[-1] else -1
-    return farr
-
-
-ML_PARSE = {'x': {'bits': (0,   105), 'operation': combine},
-            'y': {'bits': (105, 112), 'operation': produce_feedback_array}}
-
-
-def extract(arr, bits, operation):
-    return operation(arr[slice(*bits)])
-
-
 def add_to_arr(arr, value, key):
     value_length = SERIAL[key]
     value_type = PARSED[key]
@@ -55,22 +37,49 @@ class Serializer:
 
     def __init__(self, filepath):
         self.__file = open(filepath, "wb")
+        self.__uniq = set()
+
+    def serialize(self, hand, table, action, card, winning):
+        ser = bitarray()
+
+        add_to_arr(ser, hand, 'Hand')
+        add_to_arr(ser, table, 'Table')
+        add_to_arr(ser, action, 'Action')
+        add_to_arr(ser, card, 'Card')
+        add_to_arr(ser, winning, 'Score')
+
+        assert len(ser) == ROW_BITS
+
+        return ser
 
     def serialize_to_file(self, hand, table, action, card, winning):
-        row = bitarray()
 
-        add_to_arr(row, hand, 'Hand')
-        add_to_arr(row, table, 'Table')
-        add_to_arr(row, action, 'Action')
-        add_to_arr(row, card, 'Card')
-        add_to_arr(row, winning, 'Score')
+        ser = self.serialize(hand, table, action, card, winning)
 
-        assert len(row) == ROW_BITS
-
-        row.tofile(self.__file)
+        # remove if duplicate
+        if str(ser) not in self.__uniq:
+            self.__uniq.add(str(ser))
+            ser.tofile(self.__file)
 
     def close(self):
         self.__file.close()
+
+
+def combine(barr):
+    res = np.frombuffer(barr.unpack(), dtype='b')
+    return res
+
+
+def produce_feedback_array(barr):
+    farr = np.zeros(52, dtype='b')
+    card = bu.ba2int(barr[:-1])
+    farr[card] = 1 if barr[-1] else -1
+    return farr
+
+
+def extract(arr, bits, operation):
+    assert len(arr) == 112, f"len={len(arr)}, bits={bits}, op={operation}"
+    return operation(arr[slice(*bits)])
 
 
 class Parser:
@@ -89,7 +98,7 @@ class Parser:
                 self.__buffer.extend(arr)
 
     def __len__(self):
-        return self.__data_size // ROW_BYTES
+        return self.__data_size // ROW_BYTES - self.__batch_size
 
     def __getitem__(self, batch_start):
         x_batch = np.empty((self.__batch_size, 105), dtype="b")
@@ -98,17 +107,13 @@ class Parser:
         for i in range(self.__batch_size):
             row_start = (batch_start + i) * ROW_BITS
             row_end = (batch_start + i + 1) * ROW_BITS
+            x = row_start + ROW_BITS
             row = self.__buffer[row_start:row_end]
 
-            x_batch[i] = extract(row, **ML_PARSE['x'])
-            y_batch[i] = extract(row, **ML_PARSE['y'])
+            assert len(row) == 112, f"len={len(row)}, s={(batch_start + i) * ROW_BITS}, e={(batch_start + i + 1) * ROW_BITS}, x={x}"
 
-        assert len(x_batch[0]) == 105
-        assert len(y_batch[0]) == 52
-        assert len(x_batch) == self.__batch_size
-        assert len(y_batch) == self.__batch_size
-        assert not np.all((x_batch[-1] == 0))
-        assert not np.all((y_batch[-1] == 0))
+            x_batch[i] = extract(row, (0,   105), combine)
+            y_batch[i] = extract(row, (105, 112), produce_feedback_array)
 
         return x_batch, y_batch
 
@@ -117,16 +122,28 @@ class Parser:
         for batch in range(batches):
             yield self[batch]
 
+    def get_unique(self):
+        s = set()
+        uniq = 0
+        gen = []
+        for i in tqdm(range(len(self))):
+            row_start = i * ROW_BITS
+            row_end = (i + 1) * ROW_BITS
+            row = self.__buffer[row_start:row_end]
+            row = row.to01()
+            if row not in s:
+                uniq += 1
+                s.add(row)
+            else:
+                gen.append(row)
+        print(uniq/len(self))
+        return gen, uniq
+
     @classmethod
     def get_protocol(cls):
         s = f"Parser info:\n" \
             f" - Serial: {SERIAL}\n" \
-            f" - Parse:  {ML_PARSE}\n"
-
-        for var in ML_PARSE.values():
-            s += "\n" + inspect.getsource(var['operation'])
-
-        return s
+            f" - Parse:  {PARSED}\n"
 
     def get_examples(self):
         return self.__data_size // ROW_BYTES
@@ -141,10 +158,10 @@ def main():
     x_legend = "  " + legend + legend + " A"
     y_legend = "  " + legend
 
-    file = "data/parsed/3ggr200k.bin"
+    file = "data/parsed/3ggr299k_bu.bin"
     parser = Parser(file)
-    w = 200
-    l = 4
+    w = 10000
+    l = 0
     for i in range(w, w + l):
         x_batch, y_batch = parser[i]
         print(x_batch)
@@ -152,7 +169,12 @@ def main():
         print(y_batch)
         print(y_legend)
     print("len", len(parser))
+    gen, uniq = parser.get_unique()
 
+    print("Computed")
+    print(uniq/len(parser))
+    for x in gen:
+        print(x)
 
 if __name__ == "__main__":
     main()
