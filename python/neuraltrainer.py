@@ -111,17 +111,16 @@ class NeuralTrainer:
     def add_callback(self, callback):
         self.__callbacks.append(callback)
 
-    def __create_dataset(self, file_path, batch_size, shuffle):
+    def __create_dataset(self, train_data_path, batch_size, shuffle):
 
-        parser = serializer.Parser(file_path, batch_size)
-        data = serializer.read(file_path)
+        data, elements = serializer.read(train_data_path)
 
         def func(i):
             i = i.numpy()  # prevent EagerTensor object from being propagated into processing
-            x, y = serializer.parse(i, batch_size, data)
+            x, y = serializer.parse_single(i, data)
             return x, y
 
-        z = list(range(len(parser)))
+        z = list(range(len(data)//14))
         dataset = tf.data.Dataset.from_generator(lambda: z, tf.uint32)
 
         dataset = dataset.map(lambda i: tf.py_function(func=func,
@@ -129,48 +128,55 @@ class NeuralTrainer:
                                                        Tout=[tf.bool,
                                                              tf.int8]),
                               num_parallel_calls=tf.data.AUTOTUNE)
-        dataset.prefetch(tf.data.AUTOTUNE)
-
         if shuffle:
-            dataset = dataset.shuffle(100)
+            dataset.shuffle(100)
 
-        return dataset, parser
+        dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+        return dataset, elements
 
     def __load_data_generators(self, train_data_file, val_data_file, batch_size, shuffle):
+        # Datafiles
         train_data_path = f"{DATA_DIR}/{train_data_file}"
         val_data_path = f"{DATA_DIR}/{val_data_file}"
 
-        # Create data generators
-        train_data, train_gen = self.__create_dataset(train_data_path, batch_size, shuffle)
-        val_data, val_gen = self.__create_dataset(val_data_path, batch_size, shuffle)
-
-        # Log training data
         self.__log.info(f"Datafiles:\n"
                         f" - Training: {train_data_file} {os.path.getsize(train_data_path) / 1024 ** 2:.2f} MB\n"
                         f" - Validation: {val_data_file} {os.path.getsize(val_data_path) / 1024 ** 2:.2f} MB\n")
-        self.__log.info(f"Training:\n"
-                        f" - Total batches: {len(train_gen)}\n"
-                        f" - Total examples: {len(train_gen) * batch_size}\n")
-        self.__log.info(f"Validation:\n"
-                        f" - Total batches: {len(val_gen)}\n"
-                        f" - Total examples: {len(val_gen) * batch_size}\n"
-                        f" - Ratio: {len(val_gen) / len(train_gen)*100:.2f}%\n")
 
-        return train_data, val_data, len(train_gen) // batch_size
+        # Training data
+        train_data, train_elements = self.__create_dataset(train_data_path, batch_size, shuffle)
+
+        self.__log.info(f"Training:\n"
+                        f" - Total batches: {train_elements // batch_size}\n"
+                        f" - Total examples: {train_elements}\n")
+
+        # Validation data
+        val_parser = serializer.Parser(val_data_path, -1)
+        val_data = val_parser[0]
+        val_elements = len(val_data[0])
+
+        self.__log.info(f"Validation:\n"
+                        f" - Total examples: {val_elements}\n"
+                        f" - Ratio: {val_elements / train_elements * 100:.2f}%\n")
+
+        return train_data, val_data, train_elements
 
     def train(self, train_data_file="test.bin", val_data_file="test.bin",
               epochs=15, epoch_divs=1, batch_size=10, learning_rate=0.01,
-              patience=None, shuffle=True, multiprocessing=False, workers=0):
+              patience=None, shuffle=False, multiprocessing=False, workers=0):
 
         # Log parameters
         self.__log.info(f"Parameters:\n"
                         f" - Epochs: {epochs}\n"
                         f" - Batch size: {batch_size}\n"
                         f" - Learning rate: {learning_rate}\n"
-                        f" - Patience: {patience}\n")
+                        f" - Patience: {patience}\n"
+                        f" - Shuffle: {shuffle}\n")
 
         # Load data into generators
-        train_data, val_data, batches = self.__load_data_generators(train_data_file, val_data_file, batch_size, shuffle)
+        train_data, val_data, train_elements = self.__load_data_generators(train_data_file, val_data_file, batch_size, shuffle)
+        batches = train_elements // batch_size
 
         # Config model
         opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -226,16 +232,16 @@ def main():
     ])
 
     trainer = NeuralTrainer(model, "Ruby", "models")
-    trainer.train(train_data_file="3ggr200k_bu.bin",
+    trainer.train(train_data_file="3ggr50k_b.bin",
                   val_data_file="test.bin",
-                  epochs=10,
+                  epochs=15,
                   epoch_divs=1,
                   batch_size=128,
                   learning_rate=0.0001,
                   patience=5,
-                  shuffle=False,
-                  multiprocessing=False,
-                  workers=0)
+                  shuffle=True,
+                  multiprocessing=True,
+                  workers=8)
     trainer.save()
 
 

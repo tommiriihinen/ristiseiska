@@ -82,17 +82,30 @@ def extract(arr, bits, operation):
     return operation(arr[slice(*bits)])
 
 
+def parse_single(batch_start, data):
+    x_batch = np.empty((1, 105), dtype="b")
+    y_batch = np.empty((1, 52), dtype="b")
+
+    row_start = batch_start * ROW_BITS
+    row_end = (batch_start + 1) * ROW_BITS
+    row = data[row_start:row_end]
+    assert len(row) == 112, f"len={len(row)}, bst={batch_start}, rs={row_start}, re={row_end}"
+
+    x_batch[0] = extract(row, (0, 105), combine)
+    y_batch[0] = extract(row, (105, 112), produce_feedback_array)
+
+    return x_batch, y_batch
+
+
 def parse(batch_start, batch_size, data):
     x_batch = np.empty((batch_size, 105), dtype="b")
     y_batch = np.empty((batch_size, 52), dtype="b")
 
     for i in range(batch_size):
-        row_start = (batch_start + i) * ROW_BITS
-        row_end = (batch_start + i + 1) * ROW_BITS
-        x = row_start + ROW_BITS
+        row_start = (batch_start * batch_size + i) * ROW_BITS
+        row_end = (batch_start * batch_size + i + 1) * ROW_BITS
         row = data[row_start:row_end]
-
-        assert len(row) == 112, f"len={len(row)}, s={(batch_start + i) * ROW_BITS}, e={(batch_start + i + 1) * ROW_BITS}, x={x}"
+        assert len(row) == 112, f"len={len(row)}, bst={batch_start}, bsz={batch_size}, rs={row_start}, re={row_end}"
 
         x_batch[i] = extract(row, (0, 105), combine)
         y_batch[i] = extract(row, (105, 112), produce_feedback_array)
@@ -102,45 +115,51 @@ def parse(batch_start, batch_size, data):
 
 def read(filepath):
     data_size = os.path.getsize(filepath)
+    rows = data_size // ROW_BYTES
 
     buffer = bitarray()
     with open(filepath, "rb") as data_file:
-        for i in tqdm(range(data_size // ROW_BYTES)):
+        for i in tqdm(range(rows)):
             arr = bitarray()
             arr.fromfile(data_file, ROW_BYTES)
             buffer.extend(arr)
-    return buffer
+    return buffer, rows
 
 
 class Parser:
 
     def __init__(self, filepath, batch_size=1):
         self.__filepath = filepath
-        self.__batch_size = batch_size
 
         self.__data_size = os.path.getsize(filepath)
+        self.__rows = self.__data_size // ROW_BYTES
+
+        self.__batch_size = batch_size
+        if batch_size < 0:
+            self.__batch_size = self.__rows
 
         self.__buffer = bitarray()
         with open(filepath, "rb") as data_file:
-            for i in tqdm(range(self.__data_size // ROW_BYTES)):
+            for i in tqdm(range(self.__rows)):
                 arr = bitarray()
                 arr.fromfile(data_file, ROW_BYTES)
                 self.__buffer.extend(arr)
 
     def __len__(self):
-        return self.__data_size // ROW_BYTES - self.__batch_size
+        return self.__rows - 1
 
     def __getitem__(self, batch_start):
         x_batch = np.empty((self.__batch_size, 105), dtype="b")
         y_batch = np.empty((self.__batch_size, 52), dtype="b")
 
         for i in range(self.__batch_size):
-            row_start = (batch_start + i) * ROW_BITS
-            row_end = (batch_start + i + 1) * ROW_BITS
-            x = row_start + ROW_BITS
+            row_start = (batch_start * self.__batch_size + i) * ROW_BITS
+            row_end = (batch_start * self.__batch_size + i + 1) * ROW_BITS
             row = self.__buffer[row_start:row_end]
-
-            assert len(row) == 112, f"len={len(row)}, s={(batch_start + i) * ROW_BITS}, e={(batch_start + i + 1) * ROW_BITS}, x={x}"
+            if len(row) != 112:
+                x_batch[i] = np.zeros(105)
+                y_batch[i] = np.zeros(52)
+                return x_batch, y_batch
 
             x_batch[i] = extract(row, (0,   105), combine)
             y_batch[i] = extract(row, (105, 112), produce_feedback_array)
@@ -188,7 +207,7 @@ def main():
     x_legend = "  " + legend + legend + " A"
     y_legend = "  " + legend
 
-    file = "data/parsed/3ggr299k_bu.bin"
+    file = "data/parsed/3ggr200k_bu.bin"
     parser = Parser(file)
     w = 10000
     l = 0
