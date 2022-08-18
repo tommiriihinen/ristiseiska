@@ -116,7 +116,7 @@ class NeuralTrainer:
         data, elements = serializer.read(train_data_path)
 
         def func(i):
-            i = i.numpy()  # prevent EagerTensor object from being propagated into processing
+            i = i # prevent EagerTensor object from being propagated into processing
             x, y = serializer.parse_single(i, data)
             return x, y
 
