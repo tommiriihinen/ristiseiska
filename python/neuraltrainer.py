@@ -3,6 +3,7 @@ import sys
 import time
 import logging
 import random
+import serializer
 from serializer import Parser
 
 import matplotlib.pyplot as plt
@@ -112,11 +113,12 @@ class NeuralTrainer:
 
     def __create_dataset(self, file_path, batch_size, shuffle):
 
-        parser = Parser(file_path, batch_size)
+        parser = serializer.Parser(file_path, batch_size)
+        data = serializer.read(file_path)
 
         def func(i):
             i = i.numpy()  # prevent EagerTensor object from being propagated into processing
-            x, y = parser[i]
+            x, y = serializer.parse(i, batch_size, data)
             return x, y
 
         z = list(range(len(parser)))
@@ -225,10 +227,10 @@ def main():
 
     trainer = NeuralTrainer(model, "Ruby", "models")
     trainer.train(train_data_file="3ggr200k_bu.bin",
-                  val_data_file="3ggr50k_b.bin",
+                  val_data_file="test.bin",
                   epochs=10,
                   epoch_divs=1,
-                  batch_size=2048,
+                  batch_size=128,
                   learning_rate=0.0001,
                   patience=5,
                   shuffle=False,

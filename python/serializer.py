@@ -82,6 +82,36 @@ def extract(arr, bits, operation):
     return operation(arr[slice(*bits)])
 
 
+def parse(batch_start, batch_size, data):
+    x_batch = np.empty((batch_size, 105), dtype="b")
+    y_batch = np.empty((batch_size, 52), dtype="b")
+
+    for i in range(batch_size):
+        row_start = (batch_start + i) * ROW_BITS
+        row_end = (batch_start + i + 1) * ROW_BITS
+        x = row_start + ROW_BITS
+        row = data[row_start:row_end]
+
+        assert len(row) == 112, f"len={len(row)}, s={(batch_start + i) * ROW_BITS}, e={(batch_start + i + 1) * ROW_BITS}, x={x}"
+
+        x_batch[i] = extract(row, (0, 105), combine)
+        y_batch[i] = extract(row, (105, 112), produce_feedback_array)
+
+    return x_batch, y_batch
+
+
+def read(filepath):
+    data_size = os.path.getsize(filepath)
+
+    buffer = bitarray()
+    with open(filepath, "rb") as data_file:
+        for i in tqdm(range(data_size // ROW_BYTES)):
+            arr = bitarray()
+            arr.fromfile(data_file, ROW_BYTES)
+            buffer.extend(arr)
+    return buffer
+
+
 class Parser:
 
     def __init__(self, filepath, batch_size=1):
