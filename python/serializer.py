@@ -82,6 +82,23 @@ def extract(arr, bits, operation):
     return operation(arr[slice(*bits)])
 
 
+def parse_single_from_file(batch_start, filepath):
+    x_batch = np.empty((1, 105), dtype="b")
+    y_batch = np.empty((1, 52), dtype="b")
+
+    row_start = batch_start * ROW_BYTES
+
+    row = bitarray()
+    with open(filepath, "rb") as file:
+        file.seek(row_start)
+        row.fromfile(file, ROW_BYTES)
+
+    x_batch[0] = extract(row, (0, 105), combine)
+    y_batch[0] = extract(row, (105, 112), produce_feedback_array)
+
+    return x_batch, y_batch
+
+
 def parse_single(batch_start, data):
     x_batch = np.empty((1, 105), dtype="b")
     y_batch = np.empty((1, 52), dtype="b")
@@ -89,7 +106,6 @@ def parse_single(batch_start, data):
     row_start = batch_start * ROW_BITS
     row_end = (batch_start + 1) * ROW_BITS
     row = data[row_start:row_end]
-    assert len(row) == 112, f"len={len(row)}, bst={batch_start}, rs={row_start}, re={row_end}"
 
     x_batch[0] = extract(row, (0, 105), combine)
     y_batch[0] = extract(row, (105, 112), produce_feedback_array)
@@ -114,16 +130,18 @@ def parse(batch_start, batch_size, data):
 
 
 def read(filepath):
-    data_size = os.path.getsize(filepath)
-    rows = data_size // ROW_BYTES
-
     buffer = bitarray()
     with open(filepath, "rb") as data_file:
-        for i in tqdm(range(rows)):
+        for i in tqdm(range(count_elements(filepath))):
             arr = bitarray()
             arr.fromfile(data_file, ROW_BYTES)
             buffer.extend(arr)
-    return buffer, rows
+    return buffer
+
+
+def count_elements(filepath):
+    data_size = os.path.getsize(filepath)
+    return data_size // ROW_BYTES
 
 
 class Parser:
@@ -208,22 +226,13 @@ def main():
     y_legend = "  " + legend
 
     file = "data/parsed/3ggr200k_bu.bin"
-    parser = Parser(file)
-    w = 10000
-    l = 0
-    for i in range(w, w + l):
-        x_batch, y_batch = parser[i]
-        print(x_batch)
+    for i in range(3):
+        parsed = parse_single_from_file(i, file)
+        print(parsed[0])
         print(x_legend)
-        print(y_batch)
+        print(parsed[1])
         print(y_legend)
-    print("len", len(parser))
-    gen, uniq = parser.get_unique()
 
-    print("Computed")
-    print(uniq/len(parser))
-    for x in gen:
-        print(x)
 
 if __name__ == "__main__":
     main()

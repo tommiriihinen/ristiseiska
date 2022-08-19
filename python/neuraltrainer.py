@@ -113,14 +113,16 @@ class NeuralTrainer:
 
     def __create_dataset(self, train_data_path, batch_size, shuffle):
 
-        data, elements = serializer.read(train_data_path)
+        elements = serializer.count_elements(train_data_path)
+
+        # data = serializer.read(train_data_path)
 
         def func(i):
-            i = i # prevent EagerTensor object from being propagated into processing
-            x, y = serializer.parse_single(i, data)
+            i = i.numpy()  # prevent EagerTensor object from being propagated into processing
+            x, y = serializer.parse_single_from_file(i, train_data_path)
             return x, y
 
-        z = list(range(len(data)//14))
+        z = list(range(elements))
         dataset = tf.data.Dataset.from_generator(lambda: z, tf.uint32)
 
         dataset = dataset.map(lambda i: tf.py_function(func=func,
@@ -154,7 +156,7 @@ class NeuralTrainer:
         # Validation data
         val_parser = serializer.Parser(val_data_path, -1)
         val_data = val_parser[0]
-        val_elements = len(val_data[0])
+        val_elements = len(val_parser)
 
         self.__log.info(f"Validation:\n"
                         f" - Total examples: {val_elements}\n"
@@ -231,17 +233,15 @@ def main():
         tf.keras.layers.Dense(52, activation='tanh')
     ])
 
-    trainer = NeuralTrainer(model, "Ruby", "models")
-    trainer.train(train_data_file="3ggr50k_b.bin",
+    trainer = NeuralTrainer(model, "Mithril", "models")
+    trainer.train(train_data_file="3ggr1M_b.bin",
                   val_data_file="test.bin",
                   epochs=15,
-                  epoch_divs=1,
+                  epoch_divs=4,
                   batch_size=128,
                   learning_rate=0.0001,
-                  patience=5,
-                  shuffle=True,
-                  multiprocessing=True,
-                  workers=8)
+                  patience=10,
+                  shuffle=True)
     trainer.save()
 
 
